@@ -52,10 +52,36 @@ fun stx expectedType? =>
 def eg2 := addone! 10
 
 #eval eg2
-#eval addone!
+#eval 3 + addone!
 
 def metaAddOne (n: MetaM Nat) : MetaM Nat :=
   do
     let i <- n
     return i + 1
 
+def addOne(n: Nat) : Nat := addone! n
+  
+#print addOne
+#eval addOne 7
+
+syntax (name := tryapp) term " >>> " term : term
+
+@[termElab tryapp] def tryappImpl : TermElab :=
+fun stx expectedType? =>
+  match stx with
+  | `($s >>> $t) =>
+    do
+      let f <- elabTerm s none
+      let x <- elabTerm t none
+      let expr : Expr := mkApp f x
+      let c ←  isTypeCorrect expr 
+      if c then
+        return expr
+      else
+        return (Lean.mkConst `Nat.zero)
+  | _ => 
+    do 
+      return (Lean.mkConst `none) 
+
+#eval Nat.succ >>> 3
+#eval Nat.succ >>> true
