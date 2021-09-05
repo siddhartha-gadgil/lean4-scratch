@@ -85,3 +85,31 @@ fun stx expectedType? =>
 
 #eval Nat.succ >>> 3
 #eval Nat.succ >>> true
+
+inductive Someterm  where
+  | something : {α : Type} → (a: α ) → Someterm
+  | nothing : Someterm
+
+syntax (name := tryapp2) term " >>>> " term : term
+
+@[termElab tryapp2] def tryappImpl2 : TermElab :=
+  let nt := Lean.mkConst `Someterm.nothing
+  let st := Lean.mkConst `Someterm.something
+  fun stx expectedType? =>
+    match stx with
+    | `($s >>>> $t) =>
+      do
+        let f <- elabTerm s none
+        let x <- elabTerm t none
+        let expr : Expr := mkApp f x
+        let c ←  isTypeCorrect expr 
+        if c then
+          return Lean.mkApp st expr
+        else
+          return nt
+    | _ => 
+      do 
+        return nt
+
+#check Nat.succ >>>> 3
+#check Nat.succ >>>> true
