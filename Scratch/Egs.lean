@@ -92,24 +92,10 @@ fun stx expectedType? =>
     do 
       return (Lean.mkConst `none) 
 
-#eval Nat.succ >>> 3
-#eval Nat.succ >>> true
-
-def eee := Nat.succ >>> 3
-#eval eee
-
-
 
 set_option pp.raw true
 set_option pp.raw.maxDepth 10
 
-#print eee
-
-def egLocal := 
-  let fn : Nat → Nat := fun n => n + n 
-  fn >>> 3
-
-#eval egLocal
 
 inductive Someterm  where
   | something  : {α : Type} → (a: α ) → Someterm
@@ -237,11 +223,16 @@ def makeTypeFamily := Eq 1
 #check makeTypeFamily
 #check Eq
 
-def makeType : Prop := by
+def makeProp : Prop := by
   apply Eq
   focus
     exact 1
   exact 2 
+
+def makeType : Type := by
+  apply Option
+  exact Nat
+  
 
 def asFunc {α β : Type} (a: α) : (α → β) → β  := 
     fun f => f a
