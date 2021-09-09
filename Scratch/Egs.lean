@@ -66,6 +66,14 @@ def addOne(n: Nat) : Nat := addone! n
 
 syntax (name := tryapp) term " >>> " term : term
 
+def hasType (exp: Expr) : TermElabM Bool :=
+  do
+    try
+      let typ  ← inferType exp
+      return true
+    catch _ => 
+      return false
+
 @[termElab tryapp] def tryappImpl : TermElab :=
 fun stx expectedType? =>
   match stx with
@@ -74,8 +82,9 @@ fun stx expectedType? =>
       let f <- elabTerm s none
       let x <- elabTerm t none
       let expr : Expr := mkApp f x
-      let c ←  isTypeCorrect expr 
-      if c then
+      let c  ← isTypeCorrect expr
+      let cc ← hasType expr 
+      if c  then
         return expr
       else
         return (Lean.mkConst `Nat.zero)
@@ -88,6 +97,13 @@ fun stx expectedType? =>
 
 def eee := Nat.succ >>> 3
 #eval eee
+
+
+
+set_option pp.raw true
+set_option pp.raw.maxDepth 10
+
+#print eee
 
 def egLocal := 
   let fn : Nat → Nat := fun n => n + n 
@@ -130,8 +146,7 @@ syntax (name := tryapp2) term " >>>> " term : term
 #check Nat.succ >>>> true
 
 
-#check (Eq.trans >>>> (rfl : Nat.zero = Nat.zero)) 
-        
+#check (Eq.trans >>>> (rfl : Nat.zero = Nat.zero))        
 
 def optApp {α β γ : Type} (f : α → β) (x : γ)  :=
   f >>>> x
@@ -142,7 +157,7 @@ def eg3 := optApp Nat.succ 3
 
 def eg4 := optApp Nat.succ true
 
-#eval eg3.isEmpty -- this fails, the definition does not type check
+#eval eg3.isEmpty -- this fails, the lambda body does not type check
 #eval eg4.isEmpty
 
 #print eg3
@@ -180,8 +195,7 @@ syntax (name := unapp) term " :: " term " |< " term : term
 
 -- #check Nat.succ :: (Nat → Nat) |< 3
 
-set_option pp.raw true
-set_option pp.raw.maxDepth 10
+
 
 #print unappImpl
 #print exprApp
@@ -200,6 +214,8 @@ syntax (name := minlet) "minlet!" : term
 #print minletImpl  
 #check minlet!
 
+def blah := Meta.isExprDefEqAux
+
 def nameLess (name: Name) := 1
 
 syntax (name := ignorename) "ignore!" ident : term
@@ -215,3 +231,25 @@ inductive WrapTerm where
   | wrapExpr : Array Expr → WrapTerm
 
 #check WrapTerm
+
+def makeTypeFamily := Eq 1
+      
+#check makeTypeFamily
+#check Eq
+
+def makeType : Prop := by
+  apply Eq
+  focus
+    exact 1
+  exact 2 
+
+def asFunc {α β : Type} (a: α) : (α → β) → β  := 
+    fun f => f a
+
+def asPi {α : Type}{motive : α → Type} (a: α) : 
+      ((x : α) → motive x) → motive a :=
+        fun f => f a    
+
+def natGen : Nat := by
+    apply (asFunc 3)
+    exact Nat.succ
