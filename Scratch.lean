@@ -27,7 +27,8 @@ def main (args: List String) : IO Unit := do
       return e
   let uu := u.run {}
   let names := [``Nat]
-  let env ← mkEmptyEnvironment  -- importModules [⟨``Nat, false⟩] {}
+  let env ← -- mkEmptyEnvironment  
+        importModules [⟨`Scratch.Egs, false⟩] {}
   let uuu := uu.run {} {env}
   let ((uuuu, _), _) ←  uuu.toIO (fun _ => IO.Error.userError "")
   IO.println (uuuu)
