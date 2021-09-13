@@ -233,6 +233,29 @@ def makeType : Type := by
   apply Option
   exact Nat
   
+def makeIndFam : Nat → Type := by
+  intro n
+  induction n with
+  | zero => 
+    exact Nat
+  | succ k ih =>
+    exact Nat × ih
+
+#check Eq.trans
+
+def useTrans: 2 = 3 := by
+  apply Eq.trans
+  focus
+    exact rfl
+  focus
+    exact sorry
+
+def eqStatement: Prop := by
+  apply Eq
+  focus
+    apply 1
+  focus
+    apply 2
 
 def asFunc {α β : Type} (a: α) : (α → β) → β  := 
     fun f => f a
@@ -244,3 +267,103 @@ def asPi {α : Type}{motive : α → Type} (a: α) :
 def natGen : Nat := by
     apply (asFunc 3)
     exact Nat.succ
+
+def piFactorizer (α : Type)(motive : α → Type) : Type :=
+    (a: α ) → motive a
+
+def island : Type := by
+  apply piFactorizer
+  focus
+    exact fun _ => Nat
+  focus
+    exact Nat
+  
+
+def island2: Type := by
+  apply piFactorizer Nat
+  intro n
+  induction n with
+  | zero => exact Nat
+  | succ k ih => exact Nat × ih
+
+def egT := island2 
+
+open Nat
+
+def egEgt : island2 := fun n =>
+  match n with
+  | zero =>  Nat.zero
+  | succ k  => (k, egEgt k)
+
+def WithType := Σ A : Type, A
+
+def WithType.mk (α : Type) (a : α) : WithType := ⟨α , a⟩
+
+def WithType.getType (w : WithType) : Type := w.1
+def WithType.getVal (w : WithType) : w.1 := w.2
+
+def metaWithType(e: Expr) : MetaM Expr := do
+  let tp <- inferType e
+  let pair  ← mkAppM ``WithType.mk #[tp, e]
+  return pair
+
+syntax (name := withtype) "withType! " term : term
+
+@[termElab withtype] def metaWithTypeStx : TermElab := 
+  fun stx expectedType? =>
+  match stx with
+  | `(withType! $s) =>
+    do 
+      let e <- elabTerm s none
+      let pair ← metaWithType e
+      return pair
+  | _ => Elab.throwIllFormedSyntax
+
+
+def egTyped  := withType! 3
+
+#check egTyped
+#check egTyped.getType
+
+def elem : Nat := egTyped.getVal
+
+#eval elem
+
+def infEg : Inhabited Nat := inferInstance
+
+#print infEg
+
+#check @inferInstance (ToString Nat)
+
+def viewExp : ToString Expr := inferInstance
+
+def explicitToString (α : Type)(a: α)(ts: ToString α) : String :=
+  ts.toString a
+
+def exprView(e: Expr) : MetaM Expr := 
+  do
+    let tp ←  inferType e
+    let tst ← mkAppM ``ToString #[tp]
+    let ts ← synthInstance? tst
+    match ts with
+    | none => return e    
+    | some t => do
+      let v ← mkAppM ``explicitToString #[tp, e, t]
+      return v
+
+
+syntax (name := showexpr) "show! " term : term
+
+@[termElab showexpr] def showexprImpl : TermElab := 
+  fun stx expectedType? =>
+  match stx with
+  | `(show! $s) =>
+    do 
+      let e <- elabTerm s none
+      let s ← exprView e
+      return s
+  | _ => Elab.throwIllFormedSyntax
+
+def egShow : String := show! (succ zero) 
+
+#eval egShow
