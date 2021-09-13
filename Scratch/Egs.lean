@@ -63,11 +63,10 @@ def eg2 := addone! 10
 #eval eg2
 #eval 3 + addone!
 
-def metaAddOne (n: MetaM Nat) : MetaM Nat :=
+def metaAddOne (n: MetaM Expr) : MetaM Expr :=
   do
     let i <- n
-    let en ← getEnv
-    return i + 1
+    return mkApp (Lean.mkConst `Nat.succ) i
 
 def addOne(n: Nat) : Nat := addone! n
   
@@ -367,7 +366,8 @@ def exprView(e: Expr) : MetaM Expr :=
     match ts with
     | none => 
       do
-        let litStr := Literal.strVal (exprToString e)
+        let viewExp : ToString Expr := inferInstance
+        let litStr := Literal.strVal (viewExp.toString e)
         let strExp := mkLit litStr
         return  strExp
     | some t => do

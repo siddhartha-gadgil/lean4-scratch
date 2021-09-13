@@ -9,7 +9,7 @@ open Lean.Meta
 open Lean.Elab.Term
 open Lean
 
-def env: Environment := {const2ModIdx := {}, constants := {},  extensions := {}}
+
 
 def main (args: List String) : IO Unit := do
   IO.println "Hello, world!"
@@ -20,8 +20,14 @@ def main (args: List String) : IO Unit := do
       match s.toNat? with
       | some n => n 
       | none => 0 
-  let u : MetaM Expr := (mkNatLit n)
+  let u : MetaM Expr := 
+    do 
+      let e ← metaAddOne (mkNatLit n)
+      -- let v ← exprView e
+      return e
   let uu := u.run {}
+  let names := [``Nat]
+  let env ← mkEmptyEnvironment  -- importModules [⟨``Nat, false⟩] {}
   let uuu := uu.run {} {env}
   let ((uuuu, _), _) ←  uuu.toIO (fun _ => IO.Error.userError "")
   IO.println (uuuu)
