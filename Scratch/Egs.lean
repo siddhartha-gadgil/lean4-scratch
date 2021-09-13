@@ -28,6 +28,15 @@ def eg1 : Bool := foo! true
 
 syntax (name := addone) "addone!" (term)? : term
 
+def addoneMeta (expr0 : Expr) : MetaM Expr := 
+    do
+      let name2 : Name := `Nat.succ
+      let expr : Expr ←  
+        mkAppM name2  #[expr0] 
+            -- the expression returned by a function
+      return expr
+
+
 @[termElab addone] def addoneImpl : TermElab :=
 fun stx expectedType? =>
   match stx with
@@ -57,6 +66,7 @@ def eg2 := addone! 10
 def metaAddOne (n: MetaM Nat) : MetaM Nat :=
   do
     let i <- n
+    let en ← getEnv
     return i + 1
 
 def addOne(n: Nat) : Nat := addone! n
@@ -200,6 +210,10 @@ syntax (name := minlet) "minlet!" : term
 #print minletImpl  
 #check minlet!
 
+def eglit := minletImpl (Syntax.mkStrLit "minlet!") none
+
+#check eglit
+
 def blah := Meta.isExprDefEqAux
 
 def nameLess (name: Name) := 1
@@ -319,6 +333,9 @@ syntax (name := withtype) "withType! " term : term
       return pair
   | _ => Elab.throwIllFormedSyntax
 
+def egName := ``Nat
+
+#check egName
 
 def egTyped  := withType! 3
 
@@ -340,13 +357,19 @@ def viewExp : ToString Expr := inferInstance
 def explicitToString (α : Type)(a: α)(ts: ToString α) : String :=
   ts.toString a
 
+def exprToString (e: Expr) : String := viewExp.toString e
+
 def exprView(e: Expr) : MetaM Expr := 
   do
     let tp ←  inferType e
     let tst ← mkAppM ``ToString #[tp]
     let ts ← synthInstance? tst
     match ts with
-    | none => return e    
+    | none => 
+      do
+        let litStr := Literal.strVal (exprToString e)
+        let strExp := mkLit litStr
+        return  strExp
     | some t => do
       let v ← mkAppM ``explicitToString #[tp, e, t]
       return v
@@ -364,6 +387,10 @@ syntax (name := showexpr) "show! " term : term
       return s
   | _ => Elab.throwIllFormedSyntax
 
-def egShow : String := show! (succ zero) 
+def egShow : String := show! (3 : Nat) 
 
 #eval egShow
+
+def egShow2 : String  := show! (fun n : Nat => 2 + n)
+
+#eval egShow2
