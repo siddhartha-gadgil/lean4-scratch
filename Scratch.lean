@@ -26,11 +26,20 @@ def main (args: List String) : IO Unit := do
       -- let v ← exprView e
       return e
   let uu := u.run {}
-  let names := [``Nat]
-  let env ← -- mkEmptyEnvironment  
-        importModules [⟨`Scratch.Egs, false⟩] {}
+  let _ ← initSearchPath (some "build:build/lib/lean")
+  let sp ← searchPathRef.get
+  IO.println sp
+  let initializing ← IO.initializing
+  if initializing then 
+      throw (IO.userError "environment objects cannot be created during initialization")
+  let env ← mkEmptyEnvironment  
+            -- importModules [⟨`Scratch.Egs, false⟩] {}
   let uuu := uu.run {} {env}
   let ((uuuu, _), _) ←  uuu.toIO (fun _ => IO.Error.userError "")
   IO.println (uuuu)
+  let bd ← Lean.getBuildDir 
+  IO.println bd
+  let bs ← Lean.getBuiltinSearchPath
+  IO.println bs
   IO.println "done"
   return ()

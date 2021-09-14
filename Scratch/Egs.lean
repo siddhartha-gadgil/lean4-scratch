@@ -371,7 +371,9 @@ def exprView(e: Expr) : MetaM Expr :=
         let strExp := mkLit litStr
         return  strExp
     | some t => do
-      let v ← mkAppM ``explicitToString #[tp, e, t]
+      -- let tts ← mkAppM ``ToString.toString #[t] 
+      let v ← -- mkAppN tts #[e]
+         mkAppM ``explicitToString #[tp, e, t]
       return v
 
 
