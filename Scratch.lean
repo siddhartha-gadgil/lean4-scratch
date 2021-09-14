@@ -35,7 +35,15 @@ def main (args: List String) : IO Unit := do
   let env ← mkEmptyEnvironment  
             -- importModules [⟨`Scratch.Egs, false⟩] {}
   let uuu := uu.run {} {env}
-  let ((uuuu, _), _) ←  uuu.toIO (fun _ => IO.Error.userError "")
+  let uStep ←  uuu.toIO'
+  let uSplit : IO (Sum Expr String) :=
+    match uStep with
+    | Except.ok ((uuuu, _), _) => return (Sum.inl uuuu)
+    | Except.error e => 
+        do
+          let msg ← e.toMessageData.toString
+          return (Sum.inr msg)
+  let uuuu ← uSplit
   IO.println (uuuu)
   let bd ← Lean.getBuildDir 
   IO.println bd
