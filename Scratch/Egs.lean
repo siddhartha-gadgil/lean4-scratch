@@ -256,12 +256,6 @@ def makeIndFam : Nat → Type := by
 
 #check Eq.trans
 
-def useTrans: 2 = 3 := by
-  apply Eq.trans
-  focus
-    exact rfl
-  focus
-    exact sorry
 
 def eqStatement: Prop := by
   apply Eq
@@ -396,3 +390,49 @@ def egShow : String := show! (3 : Nat)
 def egShow2 : String  := show! (fun n : Nat => 2 + n)
 
 #eval egShow2
+
+def hashExpr : Hashable Expr := inferInstance
+
+#check hashExpr
+
+theorem constfunc{α : Type}{f: Nat → α}:
+        (∀ n: Nat, f n = f (succ n)) →  (∀ n: Nat, f n = f zero) := by
+          intro hyp
+          intro n 
+          induction n with
+          | zero => rfl
+          | succ k ih =>
+             rw [← ih]
+             apply Eq.symm
+             apply hyp
+
+theorem constfuncGen{α : Type}{f: Nat → α}:
+        (∀ n: Nat, f n = f (succ n)) →  
+          (∃ c : α, ∀ n: Nat, f n = c) := by
+          intro hyp
+          apply Exists.intro
+          intro n
+          induction n with
+          | zero => rfl
+          | succ k ih =>
+             rw [← ih]
+             apply Eq.symm
+             apply hyp 
+
+def mvarMeta : MetaM Expr := do
+  let mvar ← mkFreshExprMVar (some (mkConst ``Nat))
+  let mvarId := mvar.mvarId!
+  assignExprMVar mvarId (mkConst ``Nat.zero)
+  return mvar
+
+syntax (name := minass) "minass!" : term
+
+@[termElab minass] def minAssImpl : TermElab :=
+  fun stx expectedType? =>
+    do
+      let e ← mvarMeta
+      return mkApp (mkConst ``Nat.succ) e
+
+def chkMinAss  := minass!
+
+#eval chkMinAss
