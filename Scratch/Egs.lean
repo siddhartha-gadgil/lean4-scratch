@@ -73,38 +73,54 @@ def addOne(n: Nat) : Nat := addone! n
 #print addOne
 #eval addOne 7
 
-syntax (name := tryapp) term " >>> " term : term
-
-def hasType (exp: Expr) : TermElabM Bool :=
-  do
-    try
-      let typ  ← inferType exp
-      return true
-    catch _ => 
-      return false
+syntax (name := tryapp) term ">>>>>" term : term
 
 @[termElab tryapp] def tryappImpl : TermElab :=
 fun stx expectedType? =>
   match stx with
-  | `($s >>> $t) =>
+  | `($s >>>>> $t) =>
     do
       let f <- elabTerm s none
       let x <- elabTerm t none
       let expr : Expr := mkApp f x
       let c  ← isTypeCorrect expr
-      let cc ← hasType expr 
+      -- let cc ← hasType expr 
       if c  then
         return expr
       else
         return (Lean.mkConst `Nat.zero)
+      -- return (Lean.mkConst `Nat.zero)
   | _ => 
     do 
-      return (Lean.mkConst `none) 
+      return (Lean.mkConst `Nat) 
 
+#check Nat.succ >>>>> Nat.zero
+def one := Nat.succ >>>>> Nat.zero
+#eval one
 
-set_option pp.raw true
-set_option pp.raw.maxDepth 10
+def shiftnat (n: Nat)(e : Expr) : MetaM Expr :=
+  match n with
+  | Nat.zero => return e
+  | Nat.succ n => do
+    let prev ← shiftnat n e
+    return ← mkApp (mkConst `Nat.succ) prev  
 
+syntax (name := natshift) term ">>+>>" term : term
+
+@[termElab natshift] def natshiftImpl : TermElab :=
+fun stx expectedType? =>
+  match stx with
+  | `($s >>+>> $t) =>
+    do
+      let e <- elabTerm s (some (Lean.mkConst `Nat))
+      let n : Nat <- t.isNatLit?.getD 0
+      return ←  shiftnat n e
+  | _ => 
+    do 
+      return (Lean.mkConst `Nat) 
+
+#check 3 >>+>> 2
+#eval 3 >>+>> 12
 
 inductive Someterm  where
   | something  : {α : Type} → (a: α ) → Someterm
@@ -220,9 +236,11 @@ def nameLess (name: Name) := 1
 syntax (name := ignorename) "ignore!" ident : term
 
 macro_rules
-  | `(ignore! $s) => `(nameLess `$s)
+  | `(ignore! $s) => `(Nat.zero)
 
 #check nameLess ``Nat.succ
+
+#check ignore! Nat.succ
 
 inductive WrapTerm where
   | wrap : {α : Type} → (a: α ) → WrapTerm
@@ -422,8 +440,12 @@ theorem constfuncGen{α : Type}{f: Nat → α}:
 def mvarMeta : MetaM Expr := do
   let mvar ← mkFreshExprMVar (some (mkConst ``Nat))
   let mvarId := mvar.mvarId!
+  let mvar2 ← mkFreshExprMVar (some (mkConst ``Nat)) -- none works too
+  let mvarId2 := mvar2.mvarId!
+  assignExprMVar mvarId2 mvar
   assignExprMVar mvarId (mkConst ``Nat.zero)
-  return mvar
+  let mvarUnused := mkFreshExprMVar (some (mkConst ``Nat))
+  return mvar2
 
 syntax (name := minass) "minass!" : term
 
@@ -436,3 +458,62 @@ syntax (name := minass) "minass!" : term
 def chkMinAss  := minass!
 
 #eval chkMinAss
+
+variable {m n: Nat}
+
+constant k : Nat
+
+constant l: Nat
+
+def kl := k * l
+
+def cname := `k
+
+#print kl
+
+#print cname
+
+def mn := m * n
+
+def names := [`n, ``mn]
+
+def nPlusOne := addone! n
+
+#check nPlusOne
+#print nPlusOne
+#print mn
+
+#eval @nPlusOne 3
+
+#check ignore! n
+#check ignore! pqrst
+
+def useName (fn: Nat → Nat) (arg: Name) : MetaM Expr := 
+  do
+    let lctx ← getLCtx
+    match (← getLCtx).findFromUserName? arg with
+  | some d => return d.value
+  | none   => return mkConst `Nat.zero 
+
+def useFVar (z: Bool) (arg: Expr) : MetaM Expr := 
+  do
+    let lctx ← getLCtx
+    let e ← lctx.getFVar! arg
+    return mkApp (mkConst `Nat.succ) e.value
+
+syntax (name := minname) "minname! " term : term
+
+@[termElab minname] def minNameImpl : TermElab :=
+  fun stx expectedType? =>
+   match stx with
+  | `(minname! $s) =>  
+    do
+      let n := Name.mkSimple "n"
+      let z := Lean.mkConst `Nat.zero
+      let ty := Lean.mkConst `Nat
+      withLetDecl n ty z fun x =>
+        let e := useFVar true x
+        return ← e
+  | _ => Elab.throwIllFormedSyntax
+
+#eval minname! true
