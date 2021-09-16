@@ -122,6 +122,9 @@ fun stx expectedType? =>
 #check 3 >>+>> 2
 #eval 3 >>+>> 12
 
+#check Lean.Syntax.mkScientificLit (Float.toString 3.14)
+
+
 inductive Someterm  where
   | something  : {α : Type} → (a: α ) → Someterm
   | nothing : Someterm
