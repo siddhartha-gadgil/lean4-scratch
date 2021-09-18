@@ -35,3 +35,50 @@ partial def exprNat : Expr → MetaM Nat := fun expr =>
 def m30 := exprNat (natExpr 30)
 #check m30
 #eval m30
+
+syntax (name := tryappm) term ">>>>>" term : term
+
+@[termElab tryappm] def tryappImpl : TermElab :=
+fun stx expectedType? =>
+  match stx with
+  | `($s >>>>> $t) =>
+    do
+      let f <- elabTerm s none
+      let x <- elabTerm t none
+      let fType ← inferType f
+      let expr : Expr ←  mkAppM' f #[x]
+      return expr
+  | _ => Elab.throwIllFormedSyntax
+    
+
+#check Nat.succ >>>>> Nat.zero
+def one := Nat.succ >>>>> Nat.zero
+#eval one
+
+def self {α : Type}(a: α ) : α  := a
+
+#eval self Nat.zero
+
+
+def selfAppM : MetaM Expr :=
+  do
+    let e ← mkAppM' (mkConst `self) #[mkConst `Nat.zero]
+    return e
+
+#eval selfAppM
+
+-- #check self >>>>> Nat.zero -- error due to failure to unify
+
+syntax (name := selfm) "self!" term : term
+
+@[termElab selfm] def selfImpl : TermElab :=
+  fun stx expectedType? =>  do
+  match stx with
+  | `(self! $t) =>
+    let e ← elabTerm t none
+    return e
+  | _ => Elab.throwIllFormedSyntax
+
+#eval self! Nat.zero
+
+#check self! self
