@@ -83,3 +83,31 @@ syntax (name := selfm) "self!" term : term
 #eval self! Nat.zero
 
 #check self! self
+
+def qN : Quote Nat := inferInstance
+
+#check List.append
+open List
+
+def listSums : List Nat  → List Nat :=
+  fun l =>
+    List.bind l (fun x => l.map (fun y => x + y))
+
+#eval listSums [1, 2, 4]
+
+def listSumEv (init: List Nat)(ev: List Nat → List Nat) : List Nat :=
+  listSums (ev init)
+
+def isleEv (init: List Nat)(ev: List Nat → List Nat) : List Nat :=
+  let inIsle := (ev (init.map (. + 1)))  
+  inIsle.map (. * 5)
+
+def evolve (depth: Nat)(init: List Nat) : List Nat :=
+  match depth with
+  |0 => init
+  | m + 1 => List.append (listSumEv (init) (evolve m))  (isleEv (init) (evolve m))
+
+#eval evolve 1 [1, 4]
+#eval (evolve 1 [2, 5]).map (fun x => x  * 5)
+#eval evolve 2 [1,  4]
+
