@@ -31,6 +31,7 @@ partial def exprNat : Expr → MetaM Nat := fun expr =>
 
 #check exprNat (natExpr 3)
 #eval exprNat (natExpr 3)
+#eval exprNat (ToExpr.toExpr 3)
 
 def m30 := exprNat (natExpr 30)
 #check m30
@@ -48,9 +49,18 @@ fun stx expectedType? =>
       let expr ← elabAppArgs f #[] #[Arg.expr x] expectedType? (explicit := false) (ellipsis := false)
       return expr
   | _ => Elab.throwIllFormedSyntax
+    
 
+def applyOptM (f x : Expr) : TermElabM (Option Expr) :=
+  do
+    try
+      let expr ← elabAppArgs f #[] #[Arg.expr x] none (explicit := false) (ellipsis := false)
+      return some expr
+    catch e =>
+      return none
 
 #check Nat.succ >>>>> Nat.zero
+#check Nat.succ >>>>> Nat.succ >>>>> Nat.zero
 def one := Nat.succ >>>>> Nat.zero
 #eval one
 
@@ -86,6 +96,12 @@ syntax (name := selfm) "self!" term : term
 
 def qN : Quote Nat := inferInstance
 
+def toExpN : ToExpr Nat := inferInstance
+
+def toExprLN: ToExpr (List Nat) := inferInstance
+
+#check ToExpr.toExpr 3
+
 #check List.append
 open List
 
@@ -111,3 +127,128 @@ def evolve (depth: Nat)(init: List Nat) : List Nat :=
 #eval (evolve 1 [2, 5]).map (fun x => x  * 5)
 #eval evolve 2 [1,  4]
 
+def listAppArgs : Expr → List Expr → TermElabM (List Expr) :=
+  fun f args =>
+    match args with
+    | [] => return []
+    | x :: ys => 
+      do
+        let head ← applyOptM f x
+        let tail ← listAppArgs f ys
+        match head with
+        | some expr => return expr :: tail
+        | none => return tail
+
+def listApps : List Expr →  List Expr  → TermElabM (List Expr)  := fun l args =>
+  match l with
+  | [] => return []
+  | x :: ys => 
+    do
+      let head ← listAppArgs x args
+      let tail ← listApps ys args
+      return head ++ tail
+
+def expList := [natExpr 1,  natExpr 3, Lean.mkConst `Nat.succ, Lean.mkConst `Nat.zero]
+
+def evListEg := listApps expList expList
+
+#eval evListEg
+
+#check Unit.unit
+
+#check Prod
+
+def mkProd {α β : Type} (a: α ) (b: β) : Prod α β := ⟨a, b⟩
+
+def foldExps : List Expr → TermElabM Expr  
+  | [] => return (mkConst `Unit.unit)
+  | x :: ys => 
+    do
+      let tail ← foldExps ys
+      let exp ← 
+        mkAppM' (Lean.mkConst `mkProd) #[x, tail]
+        -- elabAppArgs 
+        -- (Lean.mkConst `List.cons) #[] #[Arg.expr x, Arg.expr tail] none 
+        --   (explicit := false) (ellipsis := false)
+      return exp
+
+def listAppExp : List Expr → List Expr → TermElabM Expr := fun l args =>
+  do
+    let ls ← listApps l args
+    let exp ← foldExps ls
+    return exp
+
+def evListExpEg := listAppExp expList expList
+
+#check @List.cons
+
+#eval foldExps []
+
+#eval evListExpEg
+
+syntax (name:= egl) "egl!" : term 
+
+@[termElab egl] def eglImpl : TermElab :=
+  fun stx expectedType? =>  evListExpEg
+
+#eval egl!
+#check egl!
+
+syntax (name:= appevsyn) "appev!" term,* ";" : term
+
+partial def traverseList : List (TermElabM Expr) → TermElabM (List Expr) :=
+        fun l =>
+          do
+            let lst ← l
+            match lst with
+            | [] => return []
+            | x :: ys => 
+              let tail ← traverseList ys
+              let head ← x
+              return head :: tail
+
+@[termElab appevsyn] def appevsynImpl : TermElab :=
+  fun stx expectedType? =>  do
+  match stx with
+  | `(appev! ;) => 
+    do
+      let exp ← listAppExp [] []
+      return exp
+  | `(appev! $s;) => 
+    do
+      -- let args ← stx.getArgs
+      -- let expsArr := args.map (fun x => elabTerm x none)
+      -- let expList ←  traverseList expsArr.toList
+      let exp ← elabTerm s none
+      let exp ← listAppExp expList [exp]
+      return exp
+  | `(appev! $s, $ts;) => 
+    do
+      let tailSyn : Syntax ← `(appev! $ts;)
+      let exp ← elabTerm s none
+      let exp ← listAppExp expList [exp]
+      return exp
+  | _ => Elab.throwIllFormedSyntax
+
+set_option pp.rawOnError true
+
+def appevsynEg := appev! 5, 6;
+
+#eval appevsynEg
+
+constant f : Nat → Nat
+
+open Lean.Elab.Command
+
+def ml0 : MonadLiftT IO CommandElabM := inferInstance
+
+def ml1 : MonadLiftT MetaM TermElabM := inferInstance
+
+def ml2 : MonadControlT MetaM TermElabM := inferInstance
+
+#print ml1
+
+
+#eval 3.14 < 3
+
+#eval 12 * 12 * 12
