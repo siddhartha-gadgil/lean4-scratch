@@ -12,14 +12,31 @@ inductive TermSeq where
 
 
 
-syntax "#⟨" term,* "⟩" : term
-macro_rules
-  | `( #⟨$[$xs:term],*⟩ ) => 
-    xs.foldr (fun head accum => 
-      do 
-        let tail ← accum
-        return ← `(TermSeq.cons $head $tail)) `(TermSeq.empty)
+syntax (name:= termseq) "#⟨" term,* "⟩" : term
+-- macro_rules
+--   | `( #⟨$[$xs:term],*⟩ ) => 
+--     xs.foldr (fun head accum => 
+--       do 
+--         let tail ← accum
+--         return ← `(TermSeq.cons $head $tail)) `(TermSeq.empty)
 
+@[termElab termseq] def termSeqImpl : TermElab :=
+  fun stx expectedType? =>
+  match stx with
+  | `( #⟨$[$xs:term],*⟩ ) => 
+    do 
+      let terms := xs.map (fun x => elabTerm x none)
+      let empty : TermElabM Expr := return mkConst `TermSeq.empty
+      let combine : TermElabM Expr → TermElabM Expr → TermElabM Expr := 
+        fun (head : TermElabM Expr) (tail : TermElabM Expr) =>
+          do
+            let h ← head
+            let t ← tail
+            let e ← mkAppM ``TermSeq.cons #[h, t]
+            return e
+      let expr : TermElabM Expr := terms.foldr combine empty
+      return ← expr
+  | _ => Elab.throwIllFormedSyntax
 
 partial def seqLength : Expr → MetaM Nat := fun expr =>
   do
