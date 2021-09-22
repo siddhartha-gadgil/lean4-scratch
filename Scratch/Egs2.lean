@@ -148,7 +148,10 @@ def listApps : List Expr →  List Expr  → TermElabM (List Expr)  := fun l arg
       let tail ← listApps ys args
       return head ++ tail
 
-def expList := [natExpr 1,  natExpr 3, Lean.mkConst `Nat.succ, Lean.mkConst `Nat.zero]
+def double: Nat→ Nat := fun x => x + x
+
+def expList := [natExpr 1,  natExpr 3, Lean.mkConst `Nat.succ, Lean.mkConst `Nat.zero, 
+              Lean.mkConst `double]
 
 def evListEg := listApps expList expList
 
