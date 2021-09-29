@@ -60,10 +60,13 @@ syntax (name:= tsl) "tsl!" term : term
 @[termElab tsl] def tslImpl : TermElab :=
   fun stx expectedType? =>
     match stx with
-    | `(tsl! $s) =>
+    | `(tsl!%$tk $s) =>
       do 
         let e ← elabTerm s none
         let l ← seqLength e
+        Lean.Elab.logInfoAt tk m!"expr: {(← e)}"
+        Lean.Elab.logInfoAt tk m!"whnf: {(← whnf e)}"
+        Lean.Elab.logInfoAt tk m!"length: {(← l)}"
         return ← ToExpr.toExpr l 
     | _ => Elab.throwIllFormedSyntax
 
@@ -75,6 +78,11 @@ def ts := TermSeq.cons 3 TermSeq.empty
 #eval tsl! #⟨3, 4, "this"⟩
 
 #check  #⟨3, 4, "this"⟩
+
+def fl := 4.5
+def three := 3
+
+#eval tsl! #⟨three, fl, "this"⟩
 
 def getFloat (s: String) : Option Float :=
   (Syntax.decodeScientificLitVal? s).map (fun ⟨m, s, e⟩ => Float.ofScientific m s e) 
