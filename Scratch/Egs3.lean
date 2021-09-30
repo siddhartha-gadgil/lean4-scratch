@@ -79,6 +79,27 @@ def ts := TermSeq.cons 3 TermSeq.empty
 
 #check  #⟨3, 4, "this"⟩
 
+open Lean.Elab.Tactic
+
+syntax (name := tsltac) "tslength" term : tactic
+@[tactic tsltac] def tslTacImpl : Tactic := 
+  fun stx =>
+    match stx with
+    | `(tactic|tslength $s) =>
+      do
+        let mvar ← getMainGoal
+        let e ← liftM (Elab.Term.elabTerm s none true true)
+        let l ← seqLength e
+        let n := ToExpr.toExpr l 
+        replaceMainGoal []
+        assignExprMVar mvar n
+    | _ => Elab.throwIllFormedSyntax
+
+def tstacEg : Nat := by 
+        tslength #⟨3, 4, "this"⟩
+
+#eval tstacEg
+
 def fl := 4.5
 def three := 3
 
@@ -112,7 +133,7 @@ syntax (name:= floatlit) "float!" term : term
       match stx with
       | `(float! $s) =>
         do  
-           let fl ← elabTerm s (some (Lean.mkConst `Float))
+           let fl ← Elab.Term.elabTerm s (some (Lean.mkConst `Float))
            let strRaw ← mkAppM ``Float.toString #[fl] 
            let str ← whnf strRaw
           --  let ⟨n, _, _⟩ := (Syntax.isScientificLit? s).get! 
