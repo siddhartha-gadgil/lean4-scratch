@@ -81,6 +81,13 @@ def ts := TermSeq.cons 3 TermSeq.empty
 
 open Lean.Elab.Tactic
 
+syntax (name:= blah) "blah" : tactic
+@[tactic blah] def blahImpl : Tactic :=
+  fun stx =>
+    do
+      Lean.Elab.logInfo "blah say I"
+      return ()
+
 syntax (name := tsltac) "tslength" term : tactic
 @[tactic tsltac] def tslTacImpl : Tactic := 
   fun stx =>
@@ -96,6 +103,7 @@ syntax (name := tsltac) "tslength" term : tactic
     | _ => Elab.throwIllFormedSyntax
 
 def tstacEg : Nat := by 
+        blah
         tslength #⟨3, 4, "this"⟩
 
 #eval tstacEg
