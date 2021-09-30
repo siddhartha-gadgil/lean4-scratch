@@ -31,6 +31,13 @@ partial def map {α β : Type} (f : α → β) (s : StreamSeq α) : StreamSeq β
   | nil => nil
   | cons x t => cons (f x) (Thunk.mk fun _ => (map f t.get))
 
+def takeList{α : Type}(n: Nat) (s : StreamSeq α) : List α :=
+  match n with
+  | zero => []
+  | succ n' => match s with
+    | nil => []
+    | cons x t => x :: takeList n' t.get
+
 end StreamSeq
 
 def natSeq := (StreamSeq.frm 0) 
@@ -77,6 +84,8 @@ def ff := evolve! doubler step 5
 
 #eval ff
 
-def fff := evolve! doubler step 60
+def fff := evolve! doubler step 6
 
 #eval fff
+
+#eval doubler.takeList 25
