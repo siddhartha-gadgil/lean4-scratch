@@ -148,3 +148,25 @@ def parse (s : String) : Except String Float :=
 
 #eval parse "1.3" -- Except.ok 1.300000
 
+
+def th3:= Thunk.mk (fun () => 3)
+
+def addN (n : Nat) : Thunk Nat →  Thunk Nat :=
+      let succT : Nat → Thunk Nat := fun n => Thunk.mk (fun () => n + 1)
+      match n with
+      | 0 => id
+      | k + 1 => fun tn => (addN k tn).bind succT
+
+#reduce (addN 20) th3
+
+-- credit: 
+-- https://www.classes.cs.uchicago.edu/archive/2019/spring/22300-1/lectures/LazyLists/index.html
+
+mutual
+  inductive LazyList (α : Type) where
+  | mk : Thunk (LazyListCell α) → LazyList α
+
+  inductive LazyListCell (α : Type) where
+  | nil : LazyListCell α
+  | cons : α → LazyList α → LazyListCell α
+end
