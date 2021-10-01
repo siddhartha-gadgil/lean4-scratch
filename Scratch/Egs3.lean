@@ -108,8 +108,65 @@ def tstacEg : Nat := by
 
 #eval tstacEg
 
+def factorThrough(α β : Type)(b : β ) : (β  → α ) → α   := 
+    fun g => g b
+
+syntax (name:= useterm) "use" term "with" term "as" ident : tactic
+@[tactic useterm] def usetermImpl : Tactic :=
+   fun stx =>
+    match stx with
+    | `(tactic|use $s with $t as $n) =>
+    do
+      let mvar ← getMainGoal
+      let name ← n.getId
+      let typ ← liftM (Elab.Term.elabTerm t none true true)
+      let value ← liftM (Elab.Term.elabTerm s (some typ) true true)
+      let target ← getMVarType mvar
+      let exp ← mkAppM `factorThrough #[target, typ, value]
+      Lean.Elab.logInfo m!"can use {typ} for target: {(← target)}"
+      liftMetaTactic $ fun m => 
+      (do
+        let appGoalList ←  apply mvar exp
+        let appGoal := appGoalList.head!
+        let ⟨_, introGoal⟩ ←  intro appGoal name  
+        return [introGoal])
+    | _ => Elab.throwIllFormedSyntax
+
+example : Nat := by
+        use 3 with Nat as n
+        have b := "d"
+        exact n
+
+
+syntax (name:= dupllet) "assign" ident "::" term "as" term : tactic
+@[tactic dupllet] def assignImpl : Tactic :=
+  fun stx =>
+    match stx with
+    | `(tactic|assign $n:ident :: $t as  $i) => 
+      do
+        let name ← n.getId
+        let typ ← liftM (Elab.Term.elabTerm t none true true)
+        let value ← liftM (Elab.Term.elabTerm i (some typ) true true)
+        let mvar ← getMainGoal
+        withMVarContext mvar do
+          let mvar2 ← mkFreshExprMVar (← getMVarType mvar) 
+          let mvarId2 := mvar2.mvarId!
+          replaceMainGoal [mvarId2]
+          withLetDecl  name  typ value $ fun x =>
+            do          
+            assignExprMVar mvar (← mkLetFVars #[x] mvar2)          
+            return ()  
+    | _ => Elab.throwIllFormedSyntax
+
 def fl := 4.5
 def three := 3
+
+def letTac : Nat   := by
+        let p := 3
+        assign y :: Nat as 3
+        exact p
+        done
+        
 
 #eval tsl! #⟨three, fl, "this"⟩
 

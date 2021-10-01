@@ -219,9 +219,6 @@ partial def traverseList : List (TermElabM Expr) → TermElabM (List Expr) :=
       return exp
   | `(appev! $s;) => 
     do
-      -- let args ← stx.getArgs
-      -- let expsArr := args.map (fun x => elabTerm x none)
-      -- let expList ←  traverseList expsArr.toList
       let exp ← elabTerm s none
       let exp ← listAppExp expList [exp]
       return exp
