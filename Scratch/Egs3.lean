@@ -108,7 +108,9 @@ def tstacEg : Nat := by
 
 #eval tstacEg
 
-def factorThrough(α β : Type)(b : β ) : (β  → α ) → α   := 
+universe u v
+
+def factorThrough(α : Sort u) (β : Sort v)(b : β ) : (β  → α ) → α   := 
     fun g => g b
 
 syntax (name:= useterm) "use" term "with" term "as" ident : tactic
@@ -123,7 +125,7 @@ syntax (name:= useterm) "use" term "with" term "as" ident : tactic
       let value ← liftM (Elab.Term.elabTerm s (some typ) true true)
       let target ← getMVarType mvar
       let exp ← mkAppM `factorThrough #[target, typ, value]
-      Lean.Elab.logInfo m!"can use {typ} for target: {(← target)}"
+      Lean.Elab.logInfo m!"can use {value} : {typ} for target: {(← target)}"
       liftMetaTactic $ fun m => 
       (do
         let appGoalList ←  apply mvar exp
