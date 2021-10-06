@@ -155,6 +155,7 @@ syntax (name:= useterm) "use" term ("with" term)? "as" ident : tactic
 example : Nat := by
         use 3 with Nat as n
         use "this" as s
+        let x := 3
         have b := "d"
         exact n
 

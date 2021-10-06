@@ -7,9 +7,12 @@ open Lean.Elab.Term
 open Lean
 open ToExpr
 
+universe u
+
 inductive TermSeq where
   | empty : TermSeq
   | cons : {α : Type} → (a : α) → (tail: TermSeq) → TermSeq
+  | consProp : {α : Prop} → (a: α ) → (tail: TermSeq) → TermSeq
 
 def mkProd {α β : Type} (a: α ) (b: β) : Prod α β := ⟨a, b⟩
 
@@ -41,8 +44,13 @@ def pack (xs : List Expr) : MetaM Expr :=
           do
             let h ← head
             let t ← tail
-            let e ← mkAppM ``TermSeq.cons #[h, t]
-            return e
+            let ht ← inferType h
+            let e ← 
+                if (← isProp ht)
+                then
+                  mkAppM ``TermSeq.consProp #[h, t]
+                else
+                  mkAppM ``TermSeq.cons #[h, t]
       let terms: List (MetaM Expr) := xs.map (fun x => return x)
       let expr : MetaM Expr := terms.foldr combine empty
       return ← expr
@@ -53,17 +61,21 @@ partial def unpack : Expr → MetaM (List Expr) :=
     let mvar ←  mkFreshExprMVar none
     let tmvar ← mkFreshExprMVar (mkConst `TermSeq)
     let sExp ←  mkAppM ``TermSeq.cons #[mvar, tmvar]
+    let spExp ←  mkAppM ``TermSeq.consProp #[mvar, tmvar]
     if ← isDefEq sExp expr then
       let prev ← unpack tmvar
       return mvar :: prev
     else 
-      return []
+      if ← isDefEq spExp expr then
+        let prev ← unpack tmvar
+        return mvar :: prev
+      else return []
 
 def applyStep (ts: Expr) : TermElabM Expr :=
   do
     let l ← unpack ts
     let ll ← listApps l l
-    let out ← pack ll
+    let out ← pack (l.append ll)
     return out
 
 
@@ -89,7 +101,13 @@ syntax (name:= termseq) "#⟨" term,* "⟩" : term
           do
             let h ← head
             let t ← tail
-            let e ← mkAppM ``TermSeq.cons #[h, t]
+            let ht ← inferType h
+            let e ← 
+                if (← isProp ht)
+                then
+                  mkAppM ``TermSeq.consProp #[h, t]
+                else
+                  mkAppM ``TermSeq.cons #[h, t]
             return e
       let expr : TermElabM Expr := terms.foldr combine empty
       return ← expr
@@ -161,3 +179,40 @@ def typInSeq? (α : Expr) : Expr → MetaM (Option Expr) :=
       let xs ← TermSeq.unpack x
       return ← typInList? α xs
 
+open Lean.Elab.Tactic 
+
+syntax (name:= termseqFind) "findInSeq" term : tactic
+@[tactic termseqFind] def termseqfindImpl : Tactic :=
+  fun stx  =>
+  match stx with
+  | `(tactic|findInSeq $s ) => 
+    withMainContext do
+      let t ← elabTermForApply s 
+      let mvar ← getMainGoal
+      let target ← getMainTarget
+      let found ← typInSeq? target t
+      match found with
+      | some x => 
+        do
+          assignExprMVar mvar x
+          replaceMainGoal []
+          return ()
+      | none => 
+        throwTacticEx `findInSeq mvar m!"did not find {target} in sequence"
+        return ()
+  | _ => Elab.throwIllFormedSyntax
+
+def modusPonens (α β : Type) : α → (α → β) → β := by
+      intros x f
+      let base := #⟨f, x⟩
+      let step := applyall! base
+      findInSeq step
+
+theorem modus_ponens (α β : Prop) : α → (α → β) → β := by
+      intros x f
+      let base := #⟨f, x⟩
+      let step := applyall! base
+      findInSeq step
+  
+#reduce modus_ponens
+#reduce modusPonens
