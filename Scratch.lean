@@ -1,4 +1,5 @@
 import Scratch.Egs
+import Scratch.TermSeq
 import Lean
 import Lean.Meta
 open Lean

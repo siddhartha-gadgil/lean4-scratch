@@ -74,7 +74,7 @@ def selfAppM : MetaM Expr :=
     let e ← mkAppM' (mkConst `self) #[mkConst `Nat.zero]
     return e
 
-#eval selfAppM
+#eval selfAppM -- checking if implicit variables are working
 
 #check self >>>>> Nat.zero 
 #eval self >>>>> Nat.zero

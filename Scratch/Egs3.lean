@@ -78,6 +78,9 @@ def ts := TermSeq.cons 3 TermSeq.empty
 #eval tsl! #⟨3, 4, "this"⟩
 
 #check  #⟨3, 4, "this"⟩
+#check fun x: Nat => #⟨x, x, "this", 4⟩
+
+example : (fun x: Nat => #⟨x, x, "this", 4⟩) 3 = #⟨3, 3, "this", 4⟩ := rfl
 
 open Lean.Elab.Tactic
 
@@ -113,7 +116,7 @@ universe u v
 def factorThrough(α : Sort u) (β : Sort v)(b : β ) : (β  → α ) → α   := 
     fun g => g b
 
-syntax (name:= useterm) "use" term "with" term "as" ident : tactic
+syntax (name:= useterm) "use" term ("with" term)? "as" ident : tactic
 @[tactic useterm] def usetermImpl : Tactic :=
    fun stx =>
     match stx with
@@ -132,13 +135,28 @@ syntax (name:= useterm) "use" term "with" term "as" ident : tactic
         let appGoal := appGoalList.head!
         let ⟨_, introGoal⟩ ←  intro appGoal name  
         return [introGoal])
+    | `(tactic|use $s as $n) =>
+    do
+      let mvar ← getMainGoal
+      let name ← n.getId
+      let value ← liftM (Elab.Term.elabTerm s none true true)
+      let typ ← inferType value
+      let target ← getMVarType mvar
+      let exp ← mkAppM `factorThrough #[target, typ, value]
+      Lean.Elab.logInfo m!"can use {value} : {typ} for target: {(← target)}"
+      liftMetaTactic $ fun m => 
+      (do
+        let appGoalList ←  apply mvar exp
+        let appGoal := appGoalList.head!
+        let ⟨_, introGoal⟩ ←  intro appGoal name  
+        return [introGoal])
     | _ => Elab.throwIllFormedSyntax
 
 example : Nat := by
         use 3 with Nat as n
+        use "this" as s
         have b := "d"
         exact n
-
 
 syntax (name:= dupllet) "assign" ident "::" term "as" term : tactic
 @[tactic dupllet] def assignImpl : Tactic :=
