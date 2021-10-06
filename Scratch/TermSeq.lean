@@ -36,8 +36,6 @@ def asProd : (ts: TermSeq) → prodType ts
   | cons  a tail => (a, asProd tail)
 -/
 
-def baseType := Type
-
 def prependExpr: MetaM Expr → MetaM Expr → MetaM Expr := 
         fun (head : MetaM Expr) (tail : MetaM Expr) =>
           do
@@ -49,9 +47,9 @@ def prependExpr: MetaM Expr → MetaM Expr → MetaM Expr :=
                 then
                   mkAppM ``TermSeq.consProp #[h, t]
                 else
-                  let level ← getLevel ht
-                  let d := Level.depth level
-                  if d == 1 then
+                  let htt ← inferType ht
+                  let typtyp := mkSort levelOne
+                  if ← isDefEq htt typtyp then
                     mkAppM ``TermSeq.cons #[h, t]
                   else t
 
@@ -230,3 +228,34 @@ theorem modus_ponens (α β : Prop) : α → (α → β) → β := by
   
 #reduce modus_ponens
 #reduce modusPonens
+
+syntax (name:= introsFind) "introsFind" : tactic
+@[tactic introsFind] def introsfindImpl : Tactic :=
+  fun stx  =>
+  match stx with
+  | `(tactic|introsFind) => 
+    withMainContext do
+      let mvar ← getMainGoal
+      let ⟨intVars, newmvar⟩ ← Meta.intros mvar
+      let expVars := intVars.toList.map (fun x => mkFVar x)
+      replaceMainGoal [newmvar]
+      let target ←  getMVarType newmvar
+      withMVarContext newmvar do
+        let ts ← TermSeq.pack expVars
+        let step ← TermSeq.applyStep ts 
+        let found ← typInSeq? target step
+        match found with
+        | some x => 
+          do
+            assignExprMVar newmvar x
+            replaceMainGoal []
+            return ()
+        | none => 
+          throwTacticEx `findInSeq mvar m!"did not find {target} in sequence"
+          return ()
+  | _ => Elab.throwIllFormedSyntax
+
+
+def mpQuick (α β : Type) : α → (α → β) → β := by
+      introsFind
+
