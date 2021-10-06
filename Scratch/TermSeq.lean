@@ -132,3 +132,32 @@ syntax (name:= termseqApply) "applyall!" term : term
 def appliedSeq := applyall! egTermSeq
 #check appliedSeq
 #reduce prod! appliedSeq
+
+def egInLam := 
+    fun (f: Nat → Nat) => 
+      let seq := #⟨1, 3, 5, f⟩
+      let ev := applyall! seq
+      prod! ev
+
+#check egInLam double
+#reduce egInLam double
+#reduce egInLam (fun x => x  * x)   
+
+def typInList? (α : Expr) : List Expr → MetaM (Option Expr) :=
+  fun xs =>
+    match xs with
+    | [] => none
+    | x :: xs =>
+      do
+        let t ← inferType x
+        if ← isDefEq t α  then
+          return (some x)
+        else
+          return ← typInList? α xs
+
+def typInSeq? (α : Expr) : Expr → MetaM (Option Expr) :=
+  fun x =>
+    do
+      let xs ← TermSeq.unpack x
+      return ← typInList? α xs
+
