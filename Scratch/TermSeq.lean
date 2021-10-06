@@ -238,7 +238,6 @@ syntax (name:= introsFind) "introsFind" : tactic
       let mvar ← getMainGoal
       let ⟨intVars, newmvar⟩ ← Meta.intros mvar
       let expVars := intVars.toList.map (fun x => mkFVar x)
-      replaceMainGoal [newmvar]
       let target ←  getMVarType newmvar
       withMVarContext newmvar do
         let ts ← TermSeq.pack expVars
@@ -259,3 +258,4 @@ syntax (name:= introsFind) "introsFind" : tactic
 def mpQuick (α β : Type) : α → (α → β) → β := by
       introsFind
 
+#print mpQuick
