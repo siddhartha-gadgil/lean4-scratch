@@ -36,10 +36,9 @@ def asProd : (ts: TermSeq) → prodType ts
   | cons  a tail => (a, asProd tail)
 -/
 
-def pack (xs : List Expr) : MetaM Expr :=
-  do 
-      let empty : MetaM Expr := return mkConst `TermSeq.empty
-      let combine : MetaM Expr → MetaM Expr → MetaM Expr := 
+def baseType := Type
+
+def prependExpr: MetaM Expr → MetaM Expr → MetaM Expr := 
         fun (head : MetaM Expr) (tail : MetaM Expr) =>
           do
             let h ← head
@@ -50,9 +49,17 @@ def pack (xs : List Expr) : MetaM Expr :=
                 then
                   mkAppM ``TermSeq.consProp #[h, t]
                 else
-                  mkAppM ``TermSeq.cons #[h, t]
+                  let level ← getLevel ht
+                  let d := Level.depth level
+                  if d == 1 then
+                    mkAppM ``TermSeq.cons #[h, t]
+                  else t
+
+def pack (xs : List Expr) : MetaM Expr :=
+  do 
+      let empty : MetaM Expr := return mkConst `TermSeq.empty
       let terms: List (MetaM Expr) := xs.map (fun x => return x)
-      let expr : MetaM Expr := terms.foldr combine empty
+      let expr : MetaM Expr := terms.foldr prependExpr empty
       return ← expr
 
 partial def unpack : Expr → MetaM (List Expr) :=
@@ -70,6 +77,13 @@ partial def unpack : Expr → MetaM (List Expr) :=
         let prev ← unpack tmvar
         return mvar :: prev
       else return []
+
+partial def append : Expr → Expr → MetaM Expr :=
+    fun x1 x2 => 
+      do 
+        let l1 ← unpack x1 
+        let l2 ← unpack x2 
+        return ← pack (l1.append l2)
 
 def applyStep (ts: Expr) : TermElabM Expr :=
   do
@@ -101,13 +115,8 @@ syntax (name:= termseq) "#⟨" term,* "⟩" : term
           do
             let h ← head
             let t ← tail
-            let ht ← inferType h
             let e ← 
-                if (← isProp ht)
-                then
-                  mkAppM ``TermSeq.consProp #[h, t]
-                else
-                  mkAppM ``TermSeq.cons #[h, t]
+                TermSeq.prependExpr h t
             return e
       let expr : TermElabM Expr := terms.foldr combine empty
       return ← expr
@@ -115,7 +124,7 @@ syntax (name:= termseq) "#⟨" term,* "⟩" : term
 
 open Nat
 
-def egTermSeq := #⟨1, 3, 5, succ, zero, double⟩
+def egTermSeq := #⟨(1 : Nat), 3, 5, succ, zero, double⟩
 
 #check egTermSeq
 
@@ -157,6 +166,7 @@ def egInLam :=
       let ev := applyall! seq
       prod! ev
 
+#print egInLam
 #check egInLam double
 #reduce egInLam double
 #reduce egInLam (fun x => x  * x)   
@@ -181,6 +191,21 @@ def typInSeq? (α : Expr) : Expr → MetaM (Option Expr) :=
 
 open Lean.Elab.Tactic 
 
+def seekInSeq (ts: Expr) : TacticM Unit :=
+  do
+    let mvar ← getMainGoal
+    let target ← getMainTarget
+    let found ← typInSeq? target ts
+    match found with
+    | some x => 
+      do
+        assignExprMVar mvar x
+        replaceMainGoal []
+        return ()
+    | none => 
+      throwTacticEx `findInSeq mvar m!"did not find {target} in sequence"
+      return ()
+
 syntax (name:= termseqFind) "findInSeq" term : tactic
 @[tactic termseqFind] def termseqfindImpl : Tactic :=
   fun stx  =>
@@ -188,18 +213,7 @@ syntax (name:= termseqFind) "findInSeq" term : tactic
   | `(tactic|findInSeq $s ) => 
     withMainContext do
       let t ← elabTermForApply s 
-      let mvar ← getMainGoal
-      let target ← getMainTarget
-      let found ← typInSeq? target t
-      match found with
-      | some x => 
-        do
-          assignExprMVar mvar x
-          replaceMainGoal []
-          return ()
-      | none => 
-        throwTacticEx `findInSeq mvar m!"did not find {target} in sequence"
-        return ()
+      seekInSeq t
   | _ => Elab.throwIllFormedSyntax
 
 def modusPonens (α β : Type) : α → (α → β) → β := by
