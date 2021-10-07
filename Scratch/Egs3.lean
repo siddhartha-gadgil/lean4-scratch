@@ -121,43 +121,46 @@ syntax (name:= useterm) "use" term ("with" term)? "as" ident : tactic
    fun stx =>
     match stx with
     | `(tactic|use $s with $t as $n) =>
+    withMainContext $
     do
       let mvar ← getMainGoal
       let name ← n.getId
-      let typ ← liftM (Elab.Term.elabTerm t none true true)
-      let value ← liftM (Elab.Term.elabTerm s (some typ) true true)
-      let target ← getMVarType mvar
+      let typ ← elabType t 
+      let value ← Elab.Tactic.elabTerm s (some typ) 
+      let target ← getMainTarget
       let exp ← mkAppM `factorThrough #[target, typ, value]
       Lean.Elab.logInfo m!"can use {value} : {typ} for target: {(← target)}"
       liftMetaTactic $ fun m => 
-      (do
+      do
         let appGoalList ←  apply mvar exp
         let appGoal := appGoalList.head!
         let ⟨_, introGoal⟩ ←  intro appGoal name  
-        return [introGoal])
+        return [introGoal]
     | `(tactic|use $s as $n) =>
+    withMainContext $
     do
       let mvar ← getMainGoal
       let name ← n.getId
-      let value ← liftM (Elab.Term.elabTerm s none true true)
+      let value ← Elab.Tactic.elabTerm s none 
       let typ ← inferType value
-      let target ← getMVarType mvar
+      let target ← getMainTarget
       let exp ← mkAppM `factorThrough #[target, typ, value]
       Lean.Elab.logInfo m!"can use {value} : {typ} for target: {(← target)}"
       liftMetaTactic $ fun m => 
-      (do
+      do
         let appGoalList ←  apply mvar exp
         let appGoal := appGoalList.head!
         let ⟨_, introGoal⟩ ←  intro appGoal name  
-        return [introGoal])
+        return [introGoal]
     | _ => Elab.throwIllFormedSyntax
 
 example : Nat := by
         use 3 with Nat as n
         use "this" as s
         let x := 3
+        use (succ x) as y
         have b := "d"
-        exact n
+        exact y
 
 syntax (name:= dupllet) "assign" ident "::" term "as" term : tactic
 @[tactic dupllet] def assignImpl : Tactic :=

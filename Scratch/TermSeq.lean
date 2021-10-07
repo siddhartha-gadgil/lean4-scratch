@@ -169,17 +169,6 @@ def egInLam :=
 #reduce egInLam double
 #reduce egInLam (fun x => x  * x)   
 
-def typInList? (α : Expr) : List Expr → MetaM (Option Expr) :=
-  fun xs =>
-    match xs with
-    | [] => none
-    | x :: xs =>
-      do
-        let t ← inferType x
-        if ← isDefEq t α  then
-          return (some x)
-        else
-          return ← typInList? α xs
 
 def typInSeq? (α : Expr) : Expr → MetaM (Option Expr) :=
   fun x =>
@@ -228,51 +217,3 @@ theorem modus_ponens_verbose (α β : Prop) : α → (α → β) → β := by
   
 #reduce modus_ponens_verbose
 #reduce modusPonensVerbose
-
-syntax (name:= introsFind) "introsFind" : tactic
-@[tactic introsFind] def introsfindImpl : Tactic :=
-  fun stx  =>
-  match stx with
-  | `(tactic|introsFind) => 
-    withMainContext do
-      let mvar ← getMainGoal
-      let ⟨intVars, codmvar⟩ ← Meta.intros mvar
-      withMVarContext codmvar do
-        let expVars := intVars.toList.map (fun x => mkFVar x)
-        let target ←  getMVarType codmvar
-        let oneStep ← applyPairsMeta expVars 
-        let found ← typInList? target oneStep
-        match found with
-        | some x => 
-          do
-            assignExprMVar codmvar x
-            replaceMainGoal []
-            return ()
-        | none => 
-          throwTacticEx `findInSeq mvar m!"did not find {target} in sequence"
-          return ()
-  | _ => Elab.throwIllFormedSyntax
-
-
-def modusPonens (α β : Type) : α → (α → β) → β := by
-      introsFind
-
-def modus_ponens (α β : Prop) : α → (α → β) → β := by
-      introsFind
-
-#print modusPonens
-#print modus_ponens
-
-def constantFunction (α β : Type)  : α → β → α  := by
-      introsFind
-
-def constant_implication (α β : Prop)  : α → β → α := by
-      introsFind
-
-def reflImpl (α : Prop) : α → α  := by
-      introsFind
-
-def autoId (α : Type) : α → α := by
-      introsFind
-
-#print autoId

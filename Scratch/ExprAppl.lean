@@ -52,5 +52,25 @@ def applyPairsCuml :  List Expr  → TermElabM (List Expr)  :=
 def applyPairsMeta : List Expr → MetaM (List Expr) :=
   fun l => (applyPairsCuml l).run'
 
+def iterApplyPairsMeta(n : Nat) : List Expr → MetaM (List Expr) :=
+  match n with
+  | 0 => fun l => return l
+  | m + 1 => fun l => do
+       let prev ← iterApplyPairsMeta m l
+       return ← applyPairsMeta prev
+
 #eval evListEg
 #check evListEg
+
+
+def typInList? (α : Expr) : List Expr → MetaM (Option Expr) :=
+  fun xs =>
+    match xs with
+    | [] => none
+    | x :: xs =>
+      do
+        let t ← inferType x
+        if ← isDefEq t α  then
+          return (some x)
+        else
+          return ← typInList? α xs

@@ -29,3 +29,35 @@ def chkMinAss  := minass!
 
 #check chkMinAss
 #eval chkMinAss 2
+
+theorem zero_add : (n : Nat) →  0 + n = n := by
+  intro n
+  induction n
+  case zero => rfl
+  case succ n ih => rw [Nat.add_succ, ih]
+
+open Nat
+
+def recFn : Nat → Nat := 
+  fun n =>
+  match n with
+   | zero =>  zero
+   | succ n  =>  succ (recFn n)
+  /-
+  Nat.brecOn n
+    fun n f =>
+      (match n : (n : Nat) → Nat.below n → Nat with 
+        | zero => fun x => zero
+        | succ n => fun x => succ x.fst.fst)
+        f
+-/
+/-by
+  intro n
+  match n with
+   | zero => exact zero
+   | succ n  => exact succ (recFn n)
+-/
+#print recFn
+
+#check Nat.rec
+#check Nat.below
