@@ -61,3 +61,54 @@ def recFn : Nat → Nat :=
 
 #check Nat.rec
 #check Nat.below
+
+
+#check Eq.mp
+#check congrArg
+
+def rwPush  (mvarId : MVarId) (e : Expr) (heq : Expr) : TermElabM (Expr × Nat) :=
+  do
+    let t ← inferType e
+    let rwr ← Meta.rewrite mvarId t heq
+    let pf := rwr.eqProof
+    let tt := rwr.eNew
+    Elab.logInfo m!"mvars : {rwr.mvarIds.length}"
+    let pushed ← mkAppM `Eq.mp #[pf, e]
+    return (pushed, rwr.mvarIds.length)
+
+open Lean.Elab.Tactic
+
+syntax (name := rwPushTac) "rwPushTac" term "on" term : tactic
+@[tactic rwPushTac] def rwPushImpl : Tactic :=
+  fun stx  => 
+  match stx with
+  | `(tactic|rwPushTac $t on $s) =>
+    withMainContext $
+    do
+      let mvarId ← getMainGoal
+      let e ← Elab.Tactic.elabTerm s none
+      let heq ← Elab.Tactic.elabTerm t none
+      let (rw, l) ← rwPush mvarId e heq
+      Elab.logInfo m!"obtained {rw}"
+      if ← isDefEq (← inferType rw) (← getMainTarget) 
+        then
+        assignExprMVar mvarId rw
+        replaceMainGoal [] 
+        else 
+        throwTacticEx `rwPushTac mvarId m!"rwPush failed"      
+      return ()
+  | _ => Elab.throwIllFormedSyntax
+
+def pushEg {α : Type}{P: α → Type}{a b : α}(heq : a = b)(x : P a) : P b := by
+    rwPushTac heq on x
+
+#check @pushEg
+#reduce @pushEg
+
+def transPf {α : Type}{a b c : α}(f: α → Nat) :
+          a = b → b = c → a = c := by
+          intros h1  h2
+          rwPushTac h2 on h1
+
+
+#reduce transPf
