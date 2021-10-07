@@ -214,20 +214,20 @@ syntax (name:= termseqFind) "findInSeq" term : tactic
       seekInSeq t
   | _ => Elab.throwIllFormedSyntax
 
-def modusPonens (α β : Type) : α → (α → β) → β := by
+def modusPonensVerbose (α β : Type) : α → (α → β) → β := by
       intros x f
       let base := #⟨f, x⟩
       let step := applyall! base
       findInSeq step
 
-theorem modus_ponens (α β : Prop) : α → (α → β) → β := by
+theorem modus_ponens_verbose (α β : Prop) : α → (α → β) → β := by
       intros x f
       let base := #⟨f, x⟩
       let step := applyall! base
       findInSeq step
   
-#reduce modus_ponens
-#reduce modusPonens
+#reduce modus_ponens_verbose
+#reduce modusPonensVerbose
 
 syntax (name:= introsFind) "introsFind" : tactic
 @[tactic introsFind] def introsfindImpl : Tactic :=
@@ -255,7 +255,25 @@ syntax (name:= introsFind) "introsFind" : tactic
   | _ => Elab.throwIllFormedSyntax
 
 
-def mpQuick (α β : Type) : α → (α → β) → β := by
+def modusPonens (α β : Type) : α → (α → β) → β := by
       introsFind
 
-#print mpQuick
+def modus_ponens (α β : Prop) : α → (α → β) → β := by
+      introsFind
+
+#print modusPonens
+#print modus_ponens
+
+def constantFunction (α β : Type)  : α → β → α  := by
+      introsFind
+
+def constant_implication (α β : Prop)  : α → β → α := by
+      introsFind
+
+def reflImpl (α : Prop) : α → α  := by
+      introsFind
+
+def autoId (α : Type) : α → α := by
+      introsFind
+
+#print autoId
