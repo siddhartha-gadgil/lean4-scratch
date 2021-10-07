@@ -66,10 +66,11 @@ def recFn : Nat → Nat :=
 #check Eq.mp
 #check congrArg
 
-def rwPush  (mvarId : MVarId) (e : Expr) (heq : Expr) : TermElabM (Expr × Nat) :=
+def rwPush  (mvarId : MVarId) (e : Expr) (heq : Expr) 
+      (symm : Bool := false): TermElabM (Expr × Nat) :=
   do
     let t ← inferType e
-    let rwr ← Meta.rewrite mvarId t heq
+    let rwr ← Meta.rewrite mvarId t heq symm
     let pf := rwr.eqProof
     let tt := rwr.eNew
     Elab.logInfo m!"mvars : {rwr.mvarIds.length}"
