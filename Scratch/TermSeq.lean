@@ -86,7 +86,7 @@ partial def append : Expr → Expr → MetaM Expr :=
 def applyStep (ts: Expr) : TermElabM Expr :=
   do
     let l ← unpack ts
-    let ll ← listApps l l
+    let ll ← applyPairs l l
     let out ← pack (l.append ll)
     return out
 
@@ -236,17 +236,16 @@ syntax (name:= introsFind) "introsFind" : tactic
   | `(tactic|introsFind) => 
     withMainContext do
       let mvar ← getMainGoal
-      let ⟨intVars, newmvar⟩ ← Meta.intros mvar
-      let expVars := intVars.toList.map (fun x => mkFVar x)
-      let target ←  getMVarType newmvar
-      withMVarContext newmvar do
-        let ts ← TermSeq.pack expVars
-        let step ← TermSeq.applyStep ts 
-        let found ← typInSeq? target step
+      let ⟨intVars, codmvar⟩ ← Meta.intros mvar
+      withMVarContext codmvar do
+        let expVars := intVars.toList.map (fun x => mkFVar x)
+        let target ←  getMVarType codmvar
+        let oneStep ← applyPairsMeta expVars 
+        let found ← typInList? target oneStep
         match found with
         | some x => 
           do
-            assignExprMVar newmvar x
+            assignExprMVar codmvar x
             replaceMainGoal []
             return ()
         | none => 

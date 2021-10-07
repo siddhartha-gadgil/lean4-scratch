@@ -27,13 +27,13 @@ def listAppArgs : Expr → List Expr → TermElabM (List Expr) :=
         | some expr => return expr :: tail
         | none => return tail
 
-def listApps : List Expr →  List Expr  → TermElabM (List Expr)  := fun l args =>
+def applyPairs : List Expr →  List Expr  → TermElabM (List Expr)  := fun l args =>
   match l with
   | [] => return []
   | x :: ys => 
     do
       let head ← listAppArgs x args
-      let tail ← listApps ys args
+      let tail ← applyPairs ys args
       return head ++ tail
 
 def double: Nat→ Nat := fun x => x + x
@@ -41,7 +41,16 @@ def double: Nat→ Nat := fun x => x + x
 def expList := [toExpr 1,  toExpr 3, Lean.mkConst `Nat.succ, Lean.mkConst `Nat.zero, 
               Lean.mkConst `double]
 
-def evListEg := listApps expList expList
+def evListEg := applyPairs expList expList
+
+def applyPairsCuml :  List Expr  → TermElabM (List Expr)  := 
+        fun l  =>
+          do
+            let step ← applyPairs l l
+            return step ++ l 
+            
+def applyPairsMeta : List Expr → MetaM (List Expr) :=
+  fun l => (applyPairsCuml l).run'
 
 #eval evListEg
 #check evListEg
