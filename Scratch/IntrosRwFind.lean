@@ -1,4 +1,5 @@
 import Scratch.ExprRw
+import Scratch.TermSeq
 import Lean.Meta
 open Lean
 open Meta
@@ -14,6 +15,20 @@ def types : List Expr → MetaM (List Expr) :=
       let t ← types t
       return (h::t)
 
+def factorThrough(α : Sort u) (β : Sort v)(b : β ) : (β  → α ) → α   := 
+    fun g => g b
+
+def addToContextM(name: Name) (type : Expr)(value: Expr) : 
+     MVarId → MetaM (List MVarId) :=
+  fun m => 
+      do
+        let target ← getMVarType m
+        let exp ← mkAppM `factorThrough #[target, type, value]
+        let appGoalList ←  apply m exp
+        let appGoal := appGoalList.head!
+        let ⟨_, introGoal⟩ ←  intro appGoal name  
+        return [introGoal]
+  
 syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
 @[tactic introsRwFind] def introsfindImpl : Tactic :=
   fun stx  =>
@@ -21,12 +36,12 @@ syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
   | `(tactic|introsRwFind) => 
     withMainContext do
       let mvar ← getMainGoal
-      let ⟨intVars, codmvar⟩ ← Meta.intros mvar
+      let ⟨introVars, codmvar⟩ ← Meta.intros mvar
       withMVarContext codmvar do
-        let expVars := intVars.toList.map (fun x => mkFVar x)
+        let introFreeVars := introVars.toList.map (fun x => mkFVar x)
         let target ←  getMVarType codmvar
-        logInfo m!"intros : {← types expVars}"
-        let oneStep ← iterAppRWM 1 codmvar expVars 
+        logInfo m!"intros : {← types introFreeVars}"
+        let oneStep ← iterAppRWM 1 codmvar introFreeVars 
         logInfo m!"generated : {← types oneStep}"
         let found ← typInList? target oneStep
         match found with
@@ -36,18 +51,22 @@ syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
             replaceMainGoal []
             return ()
         | none => 
-          throwTacticEx `introsRwFind mvar m!"did not find {target} in sequence"
+          replaceMainGoal [codmvar]
+          let value ← TermSeq.pack oneStep
+          let type ← inferType value
+          let name := `genpack
+          liftMetaTactic $  addToContextM name type value 
           return ()
   | `(tactic|introsRwFind $t) => 
     withMainContext do
       let n : Nat <- t.isNatLit?.getD 0
       let mvar ← getMainGoal
-      let ⟨intVars, codmvar⟩ ← Meta.intros mvar
+      let ⟨introVars, codmvar⟩ ← Meta.intros mvar
       withMVarContext codmvar do
-        let expVars := intVars.toList.map (fun x => mkFVar x)
+        let introFreeVars := introVars.toList.map (fun x => mkFVar x)
         let target ←  getMVarType codmvar
-        logInfo m!"intros : {← types expVars}"
-        let oneStep ← iterAppRWM n codmvar expVars 
+        logInfo m!"intros : {← types introFreeVars}"
+        let oneStep ← iterAppRWM n codmvar introFreeVars 
         logInfo m!"generated : {← types oneStep}"
         let found ← typInList? target oneStep
         match found with
@@ -57,38 +76,13 @@ syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
             replaceMainGoal []
             return ()
         | none => 
-          throwTacticEx `introsRwFind mvar m!"did not find {target} in sequence"
+          replaceMainGoal [codmvar]
+          let value ← TermSeq.pack oneStep
+          let type ← inferType value
+          let name := `genpack
+          liftMetaTactic $  addToContextM name type value 
           return ()
   | _ => Elab.throwIllFormedSyntax
-
-syntax (name:= introsRwView) "introsRwView" (term)? : tactic
-@[tactic introsRwView] def introsViewImpl : Tactic :=
-  fun stx  =>
-  match stx with
-  | `(tactic|introsRwView) => 
-    withMainContext do
-      let mvar ← getMainGoal
-      let ⟨intVars, codmvar⟩ ← Meta.intros mvar
-      withMVarContext codmvar do
-        let expVars := intVars.toList.map (fun x => mkFVar x)  
-        let target ←  getMVarType codmvar
-        logInfo m!"intros : {← types expVars}"
-        let oneStep ← iterAppRWM 1 codmvar expVars 
-        logInfo m!"generated : {← types oneStep}"
-        return ()
-  | `(tactic|introsRwView $t) => 
-    withMainContext do
-      let n : Nat <- t.isNatLit?.getD 0
-      let mvar ← getMainGoal
-      let ⟨intVars, codmvar⟩ ← Meta.intros mvar
-      withMVarContext codmvar do
-        let expVars := intVars.toList.map (fun x => mkFVar x)
-        let target ←  getMVarType codmvar
-        let oneStep ← iterAppRWM n codmvar expVars 
-        logInfo m!"generated : {← types oneStep}"
-        return ()
-  | _ => Elab.throwIllFormedSyntax
-
 
 def modusPonens {α β : Type} : α → (α → β) → β := by
       introsRwFind
@@ -125,3 +119,4 @@ theorem idsEqual{μ : Type}{mul: μ → μ → μ}:
       (rightId : (x : μ ) →  mul x eᵣ = x) →
       eₗ = eᵣ := by 
         introsRwFind 2
+        

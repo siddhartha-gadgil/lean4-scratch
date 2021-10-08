@@ -116,6 +116,17 @@ universe u v
 def factorThrough(α : Sort u) (β : Sort v)(b : β ) : (β  → α ) → α   := 
     fun g => g b
 
+def addToContextM(name: Name) (type : Expr)(value: Expr) : 
+     MVarId → MetaM (List MVarId) :=
+  fun m => 
+      do
+        let target ← getMVarType m
+        let exp ← mkAppM `factorThrough #[target, type, value]
+        let appGoalList ←  apply m exp
+        let appGoal := appGoalList.head!
+        let ⟨_, introGoal⟩ ←  intro appGoal name  
+        return [introGoal]
+
 syntax (name:= useterm) "use" term ("with" term)? "as" ident : tactic
 @[tactic useterm] def usetermImpl : Tactic :=
    fun stx =>
@@ -123,35 +134,17 @@ syntax (name:= useterm) "use" term ("with" term)? "as" ident : tactic
     | `(tactic|use $s with $t as $n) =>
     withMainContext $
     do
-      let mvar ← getMainGoal
       let name ← n.getId
       let typ ← elabType t 
       let value ← Elab.Tactic.elabTerm s (some typ) 
-      let target ← getMainTarget
-      let exp ← mkAppM `factorThrough #[target, typ, value]
-      Lean.Elab.logInfo m!"can use {value} : {typ} for target: {(← target)}"
-      liftMetaTactic $ fun m => 
-      do
-        let appGoalList ←  apply mvar exp
-        let appGoal := appGoalList.head!
-        let ⟨_, introGoal⟩ ←  intro appGoal name  
-        return [introGoal]
+      liftMetaTactic $ addToContextM name typ value
     | `(tactic|use $s as $n) =>
     withMainContext $
     do
-      let mvar ← getMainGoal
       let name ← n.getId
       let value ← Elab.Tactic.elabTerm s none 
       let typ ← inferType value
-      let target ← getMainTarget
-      let exp ← mkAppM `factorThrough #[target, typ, value]
-      Lean.Elab.logInfo m!"can use {value} : {typ} for target: {(← target)}"
-      liftMetaTactic $ fun m => 
-      do
-        let appGoalList ←  apply mvar exp
-        let appGoal := appGoalList.head!
-        let ⟨_, introGoal⟩ ←  intro appGoal name  
-        return [introGoal]
+      liftMetaTactic $ addToContextM name typ value
     | _ => Elab.throwIllFormedSyntax
 
 example : Nat := by
@@ -188,6 +181,7 @@ def three := 3
 def letTac : Nat   := by
         let p := 3
         assign y :: Nat as 3
+        skip
         exact p
         done
         
