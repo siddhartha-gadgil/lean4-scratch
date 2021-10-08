@@ -59,3 +59,13 @@ def iterRWPairsM(n : Nat)(mvarId : MVarId)(symm: Bool) : List Expr → MetaM (Li
   | m + 1 => fun l => do
        let prev ← iterRWPairsM m mvarId symm  l
        return ← rwPairsCuml mvarId symm prev
+
+def iterAppRWM(n: Nat)(mvarId : MVarId) : List Expr → MetaM (List Expr) :=
+   match n with
+  | 0 => fun l => return l
+  | m + 1 => fun l => do
+       let prev ← iterAppRWM m mvarId  l
+       let rwStep ← rwPairs mvarId false prev prev
+       let rwFlipStep ←  rwPairs mvarId true prev prev
+       let appStep ← applyPairsMeta prev
+       return (rwStep.append (rwFlipStep.append appStep))
