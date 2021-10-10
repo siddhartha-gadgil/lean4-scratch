@@ -31,17 +31,17 @@ def fib : Nat → Nat
 def ll (n: Nat) : Nat :=
   dbgTrace ("ll " ++ toString n) $ fun _ => fib n
 
-#time def l6 (n: Nat) : IO Nat :=
-  let t1 := Task.spawn (fun _ => ll n) Task.Priority.dedicated 
-  let t2 := Task.spawn (fun _ => ll (n + 1)) Task.Priority.dedicated
-  let t3 := Task.spawn (fun _ => ll (n + 2)) Task.Priority.dedicated
-  let t4 := Task.spawn (fun _ => ll (n + 3)) Task.Priority.dedicated
-  let t5 := Task.spawn (fun _ => ll (n + 2)) Task.Priority.dedicated
-  let t6 := Task.spawn (fun _ => ll (n + 1)) Task.Priority.dedicated
+#time def fib6 (n: Nat) : IO Nat :=
+  let t1 := Task.spawn (fun _ => ll (n + 3)) 
+  let t2 := Task.spawn (fun _ => ll (n + 3))
+  let t3 := Task.spawn (fun _ => ll (n + 2))
+  let t4 := Task.spawn (fun _ => ll (n + 3))
+  let t5 := Task.spawn (fun _ => ll (n + 2))
+  let t6 := Task.spawn (fun _ => ll (n + 3))
   return t1.get + t2.get + t3.get + t4.get + t5.get + t6.get 
 
 
-#time #eval l6 30
+#time #eval fib6 30
 
 
 def l : List Nat := List.range 20
