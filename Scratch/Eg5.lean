@@ -29,7 +29,7 @@ let t1 := Task.spawn fun _ => f1 n;
 let t2 := Task.spawn fun _ => f2 n;
 dbgSleep 1000 $ fun _ =>
 IO.println (toString t1.get ++ " " ++ toString t2.get) *>
-pure 0
+pure t1.get
 
 #eval tst 10
 
@@ -43,9 +43,18 @@ syntax (name:= tasktac) "tasktac" : tactic
       let value ← ToExpr.toExpr res
       logInfo m!"got {res}"
       let type := mkConst `Nat
-      liftMetaTactic $  addToContextM `zero type value 
+      liftMetaTactic $  addToContextM `result type value 
       return ()
 
-def tt : Unit := by
+def tt : Nat := by
   tasktac
-  exact ()
+  exact result
+
+#eval tt
+
+def tstDirect(n: Nat) : Nat :=
+   let t1 := Task.spawn fun _ => n * 2
+   let t2 := Task.spawn fun _ => n * 3
+   t1.get + t2.get
+
+#eval tstDirect 3

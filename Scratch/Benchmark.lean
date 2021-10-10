@@ -17,15 +17,31 @@ syntax (name := timeCmd)  "#time " command : command
 
 end
 
-set_option maxRecDepth 100000 in
-#time example : (List.range 5000).length = 5000 := rfl
+set_option maxRecDepth 200000 in
+#time example : (List.range 5100).length = 5100 := rfl
+
 
 def fib : Nat → Nat
 | 0 => 1
 | 1 => 1
 | (n+2) => fib n + fib (n+1)
 
-#time example : fib 34 = 9227465 := rfl
+#time #eval fib 33 
+
+def ll (n: Nat) : Nat :=
+  dbgTrace ("ll " ++ toString n) $ fun _ => fib n
+
+#time def l6 (n: Nat) : IO Nat :=
+  let t1 := Task.spawn (fun _ => ll n) Task.Priority.dedicated 
+  let t2 := Task.spawn (fun _ => ll (n + 1)) Task.Priority.dedicated
+  let t3 := Task.spawn (fun _ => ll (n + 2)) Task.Priority.dedicated
+  let t4 := Task.spawn (fun _ => ll (n + 3)) Task.Priority.dedicated
+  let t5 := Task.spawn (fun _ => ll (n + 2)) Task.Priority.dedicated
+  let t6 := Task.spawn (fun _ => ll (n + 1)) Task.Priority.dedicated
+  return t1.get + t2.get + t3.get + t4.get + t5.get + t6.get 
+
+
+#time #eval l6 30
 
 
 def l : List Nat := List.range 20
