@@ -117,12 +117,12 @@ partial def lambdaImplicits  (e  : Expr) (hasArgs : Bool) :
   match eType with
   | Expr.forallE n d b c =>
     if c.binderInfo.isImplicit || (hasArgs && c.binderInfo.isStrictImplicit) then
-      withLocalDecl Name.anonymous c.binderInfo d  $ fun x => 
+      withLocalDecl Name.anonymous BinderInfo.default d  $ fun x => 
         do
           let prev ← lambdaImplicits (mkApp e x)  hasArgs
           return ←  mkLambdaFVars #[x] prev
     else if c.binderInfo.isInstImplicit then
-      withLocalDecl Name.anonymous c.binderInfo d  $ fun x => 
+      withLocalDecl Name.anonymous BinderInfo.default d  $ fun x => 
         do
           let prev ← lambdaImplicits (mkApp e x)  hasArgs
           return ←  mkLambdaFVars #[x] prev
@@ -178,7 +178,8 @@ def pad (s: String)(n: Nat) : String :=
 def addSingsToContextM (values : List Expr) : 
      MVarId → TermElabM (List MVarId) :=
      match values with
-      | [] => fun m => return [m]
+      | [] => fun m => 
+      return [m]
       | h::t => fun m => 
         do
           let f := Lean.mkConst `mkSingleton
@@ -228,5 +229,6 @@ def transitPf {α : Type}:{a b c : α} →
           intros a b c eq1 eq2
           exppieces
           let p := pieceB.value
+          let pg := pieceG.value 
           rw [eq2] at eq1
           exact eq1
