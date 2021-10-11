@@ -151,13 +151,16 @@ def lamImpl (e: Expr) : TermElabM Expr := do
   let e ← lambdaImplicits e  true
   return e
 
+universe u
 
-inductive Singleton {α : Type}: α →  Type where
-  | mk : (a : α) → Singleton a
+inductive Singleton (α : Type u): α →  Type u where
+  | mk :  (a : α) → Singleton α  a
   
-def Singleton.value {α : Type}{a: α} : Singleton a → α 
+def Singleton.value {α : Type u}{a: α} : Singleton α  a → α 
   | Singleton.mk a => a
-  
+
+def mkSingleton : (α : Type u) → (a : α) → Singleton α a :=
+  fun α a => Singleton.mk a
 
 def egSing := Singleton.mk 10
 
@@ -174,15 +177,20 @@ def addSingsToContextM (values : List Expr) :
       | [] => fun m => return [m]
       | h::t => fun m => 
         do
-          let f := Lean.mkConst `Singleton.mk
-          let exprOpt ← 
-              applyOptM f h
+          let f := Lean.mkConst `mkSingleton
+          let htype ← inferType h
+          let exprOpt : Option Expr ← 
+            try
+              let expr ←  mkAppM `mkSingleton #[htype, h]
+              some expr
+            catch _ => none
           match exprOpt with
           | some expr =>
-            let expr ← instantiateMVars expr
-            let newMVarIds ← addToContextM Name.anonymous (← inferType expr) expr m
+            let name := Name.mkNum `Piece (values.length)
+            let newMVarIds ← addToContextM name (← inferType expr) expr m
             addSingsToContextM t newMVarIds.head!
-          | none => addSingsToContextM t m
+          | none => 
+            addSingsToContextM t m
 
 syntax (name:= exppieces) "exppieces" : tactic
 @[tactic exppieces] def exppiecesImp : Tactic :=
@@ -203,7 +211,9 @@ syntax (name:= exppieces) "exppieces" : tactic
       logInfo m!"equal? {unchanged}"
       let lamPieces ← pieces.mapM (fun exp => lamImpl exp)
       logInfo m!"lambda {lamPieces}"
-      -- liftMetaTactic $ fun mvar =>  (addSingsToContextM  lamPieces mvar).run' 
+      let lamTypes ←  lamPieces.mapM (fun x => inferType x)
+      logInfo m!"lambdaTypes {lamTypes}"
+      liftMetaTactic $ fun mvar =>  (addSingsToContextM  lamPieces mvar).run' 
       return ()
 
 set_option pp.all true
