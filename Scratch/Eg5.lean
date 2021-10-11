@@ -110,26 +110,27 @@ partial def consumeImplicits  (e eType : Expr) (hasArgs : Bool) :
       | _ => pure (e, eType)
   | _ => pure (e, eType)
 
-partial def lambdaImplicits  (e  : Expr) (hasArgs : Bool) : 
+partial def lambdaImplicits  (e  : Expr) (makeExplicit : Bool) : 
           TermElabM Expr := do
   let eType ← inferType e
   let eType ← whnfCore eType
   match eType with
   | Expr.forallE n d b c =>
-    if c.binderInfo.isImplicit || (hasArgs && c.binderInfo.isStrictImplicit) then
-      withLocalDecl Name.anonymous BinderInfo.default d  $ fun x => 
+    let bind := if makeExplicit then BinderInfo.default else c.binderInfo 
+    if c.binderInfo.isImplicit || c.binderInfo.isStrictImplicit then
+      withLocalDecl Name.anonymous bind d  $ fun x => 
         do
-          let prev ← lambdaImplicits (mkApp e x)  hasArgs
+          let prev ← lambdaImplicits (mkApp e x)  makeExplicit
           return ←  mkLambdaFVars #[x] prev
     else if c.binderInfo.isInstImplicit then
-      withLocalDecl Name.anonymous BinderInfo.default d  $ fun x => 
+      withLocalDecl Name.anonymous bind d  $ fun x => 
         do
-          let prev ← lambdaImplicits (mkApp e x)  hasArgs
+          let prev ← lambdaImplicits (mkApp e x)  makeExplicit
           return ←  mkLambdaFVars #[x] prev
 
     else match d.getOptParamDefault? with
       | some defVal => 
-          lambdaImplicits (mkApp e defVal)  hasArgs
+          lambdaImplicits (mkApp e defVal)  makeExplicit
       -- TODO: we do not handle autoParams here.
       | _ => pure e
   | _ => pure e
@@ -147,8 +148,8 @@ def consImpl (e: Expr) : TermElabM Expr := do
   let (e, eType) ← consumeImplicits e eType true
   return e
 
-def lamImpl (e: Expr) : TermElabM Expr := do
-  let e ← lambdaImplicits e  true
+def lamImpl (e: Expr) (mkExplicit : Bool) : TermElabM Expr := do
+  let e ← lambdaImplicits e  mkExplicit
   return e
 
 universe u
@@ -215,11 +216,13 @@ syntax (name:= exppieces) "exppieces" : tactic
           return exp == fed
       )      
       logInfo m!"equal? {unchanged}"
-      let lamPieces ← pieces.mapM (fun exp => lamImpl exp)
+      let lamPieces ← pieces.mapM (fun exp => lamImpl exp true)
+      let lamImplPieces ← pieces.mapM (fun exp => lamImpl exp false)
       logInfo m!"lambda {lamPieces}"
       let lamTypes ←  lamPieces.mapM (fun x => inferType x)
       logInfo m!"lambdaTypes {lamTypes}"
-      liftMetaTactic $ fun mvar =>  (addSingsToContextM  lamPieces mvar).run' 
+      liftMetaTactic $ fun mvar =>  
+        (addSingsToContextM  (lamImplPieces ++ lamPieces) mvar).run' 
       return ()
 
 set_option pp.all true
@@ -229,6 +232,6 @@ def transitPf {α : Type}:{a b c : α} →
           intros a b c eq1 eq2
           exppieces
           let p := pieceB.value
-          let pg := pieceG.value 
+          let pg := pieceG.value
           rw [eq2] at eq1
           exact eq1
