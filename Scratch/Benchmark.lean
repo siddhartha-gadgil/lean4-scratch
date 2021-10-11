@@ -29,7 +29,7 @@ def fib : Nat → Nat
 #time #eval fib 33 
 
 def ll (n: Nat) : Nat :=
-  dbgTrace ("ll " ++ toString n) $ fun _ => fib n
+  dbgTrace ("fib " ++ toString n) $ fun _ => fib n
 
 #time def fib6 (n: Nat) : IO Nat :=
   let t1 := Task.spawn (fun _ => ll (n + 3)) 
@@ -38,7 +38,7 @@ def ll (n: Nat) : Nat :=
   let t4 := Task.spawn (fun _ => ll (n + 3))
   let t5 := Task.spawn (fun _ => ll (n + 2))
   let t6 := Task.spawn (fun _ => ll (n + 3))
-  return t1.get + t2.get + t3.get + t4.get + t5.get + t6.get 
+  t1.get + t2.get + t3.get + t4.get + t5.get + t6.get 
 
 
 #time #eval fib6 30
