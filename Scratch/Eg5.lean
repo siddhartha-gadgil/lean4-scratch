@@ -170,6 +170,10 @@ def egSing := Singleton.mk 10
 
 #eval egSing.value
 
+def pad (s: String)(n: Nat) : String :=
+  match n with
+  | 0 => s
+  | m + 1 => s ++ ⟨Char.ofNat (64 + n) :: []⟩
 
 def addSingsToContextM (values : List Expr) : 
      MVarId → TermElabM (List MVarId) :=
@@ -186,7 +190,8 @@ def addSingsToContextM (values : List Expr) :
             catch _ => none
           match exprOpt with
           | some expr =>
-            let name := Name.mkNum `Piece (values.length)
+            let n := values.length
+            let name := Name.mkSimple (pad "piece" n)
             let newMVarIds ← addToContextM name (← inferType expr) expr m
             addSingsToContextM t newMVarIds.head!
           | none => 
@@ -222,5 +227,6 @@ def transitPf {α : Type}:{a b c : α} →
           a = b → b = c → a = c := by
           intros a b c eq1 eq2
           exppieces
+          let p := pieceB.value
           rw [eq2] at eq1
           exact eq1
