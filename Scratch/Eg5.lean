@@ -110,6 +110,31 @@ partial def consumeImplicits  (e eType : Expr) (hasArgs : Bool) :
       | _ => pure (e, eType)
   | _ => pure (e, eType)
 
+partial def lambdaImplicits  (e  : Expr) (hasArgs : Bool) : 
+          TermElabM Expr := do
+  let eType ← inferType e
+  let eType ← whnfCore eType
+  match eType with
+  | Expr.forallE n d b c =>
+    if c.binderInfo.isImplicit || (hasArgs && c.binderInfo.isStrictImplicit) then
+      withLocalDecl Name.anonymous c.binderInfo d  $ fun x => 
+        do
+          let prev ← lambdaImplicits (mkApp e x)  hasArgs
+          return ←  mkLambdaFVars #[x] prev
+    else if c.binderInfo.isInstImplicit then
+      withLocalDecl Name.anonymous c.binderInfo d  $ fun x => 
+        do
+          let prev ← lambdaImplicits (mkApp e x)  hasArgs
+          return ←  mkLambdaFVars #[x] prev
+
+    else match d.getOptParamDefault? with
+      | some defVal => 
+          lambdaImplicits (mkApp e defVal)  hasArgs
+      -- TODO: we do not handle autoParams here.
+      | _ => pure e
+  | _ => pure e
+
+
 def getFnsAux : Expr → List Expr → List Expr
   | Expr.app f a _, l  => getFnsAux f (f :: a :: l) 
   | e, l => e :: l
@@ -121,6 +146,43 @@ def consImpl (e: Expr) : TermElabM Expr := do
   let eType ← inferType e
   let (e, eType) ← consumeImplicits e eType true
   return e
+
+def lamImpl (e: Expr) : TermElabM Expr := do
+  let e ← lambdaImplicits e  true
+  return e
+
+
+inductive Singleton {α : Type}: α →  Type where
+  | mk : (a : α) → Singleton a
+  
+def Singleton.value {α : Type}{a: α} : Singleton a → α 
+  | Singleton.mk a => a
+  
+
+def egSing := Singleton.mk 10
+
+#check egSing
+
+#check @Singleton.value
+
+#eval egSing.value
+
+
+def addSingsToContextM (values : List Expr) : 
+     MVarId → TermElabM (List MVarId) :=
+     match values with
+      | [] => fun m => return [m]
+      | h::t => fun m => 
+        do
+          let f := Lean.mkConst `Singleton.mk
+          let exprOpt ← 
+              applyOptM f h
+          match exprOpt with
+          | some expr =>
+            let expr ← instantiateMVars expr
+            let newMVarIds ← addToContextM Name.anonymous (← inferType expr) expr m
+            addSingsToContextM t newMVarIds.head!
+          | none => addSingsToContextM t m
 
 syntax (name:= exppieces) "exppieces" : tactic
 @[tactic exppieces] def exppiecesImp : Tactic :=
@@ -139,13 +201,16 @@ syntax (name:= exppieces) "exppieces" : tactic
           return exp == fed
       )      
       logInfo m!"equal? {unchanged}"
-      -- liftMetaTactic $  addAllToContextM  pieces 
+      let lamPieces ← pieces.mapM (fun exp => lamImpl exp)
+      logInfo m!"lambda {lamPieces}"
+      -- liftMetaTactic $ fun mvar =>  (addSingsToContextM  lamPieces mvar).run' 
       return ()
 
 set_option pp.all true
 
 def transitPf {α : Type}:{a b c : α} → 
           a = b → b = c → a = c := by
-          intros
+          intros a b c eq1 eq2
           exppieces
-          exact sorry
+          rw [eq2] at eq1
+          exact eq1
