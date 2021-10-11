@@ -28,7 +28,18 @@ def addToContextM(name: Name) (type : Expr)(value: Expr) :
         let appGoal := appGoalList.head!
         let ⟨_, introGoal⟩ ←  intro appGoal name  
         return [introGoal]
-  
+
+
+
+def addAllToContextM (values : List Expr) : 
+     MVarId → MetaM (List MVarId) :=
+     match values with
+      | [] => fun m => return [m]
+      | h::t => fun m => 
+        do
+          let newMVarIds ← addToContextM Name.anonymous (← inferType h) h m
+          addAllToContextM t newMVarIds.head!
+
 syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
 @[tactic introsRwFind] def introsfindImpl : Tactic :=
   fun stx  =>

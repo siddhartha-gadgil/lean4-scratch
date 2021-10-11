@@ -98,6 +98,9 @@ fun stx expectedType? =>
 def one := Nat.succ >>>>> Nat.zero
 #eval one
 
+#check Eq >>>>> 2
+#check (@Eq Nat) >>>>> 2
+
 def shiftnat (n: Nat)(e : Expr) : MetaM Expr :=
   match n with
   | Nat.zero => return e

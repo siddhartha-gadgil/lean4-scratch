@@ -122,9 +122,10 @@ def consImpl (e: Expr) : TermElabM Expr := do
   let (e, eType) ← consumeImplicits e eType true
   return e
 
-syntax (name:= piecesraw) "piecesraw" : tactic
-@[tactic piecesraw] def piecesrawImp : Tactic :=
+syntax (name:= exppieces) "exppieces" : tactic
+@[tactic exppieces] def exppiecesImp : Tactic :=
   fun stx =>
+    withMainContext
     do
       let e ← getMainTarget 
       let eType ← inferType e
@@ -138,12 +139,13 @@ syntax (name:= piecesraw) "piecesraw" : tactic
           return exp == fed
       )      
       logInfo m!"equal? {unchanged}"
+      -- liftMetaTactic $  addAllToContextM  pieces 
       return ()
 
 set_option pp.all true
 
-def transitPf {α : Type}{a b c : α}(f: α → Nat) :
+def transitPf {α : Type}:{a b c : α} → 
           a = b → b = c → a = c := by
           intros
-          piecesraw
+          exppieces
           exact sorry
