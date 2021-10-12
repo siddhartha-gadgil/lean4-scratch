@@ -160,23 +160,48 @@ inductive Singleton (α : Type u): α →  Type u where
 def Singleton.value {α : Type u}{a: α} : Singleton α  a → α 
   | Singleton.mk a => a
 
-def mkSingleton : (α : Type u) → (a : α) → Singleton α a :=
-  fun α a => Singleton.mk a
+theorem Singleton.value.eq {α : Type u}{a: α} : 
+    ∀ (s : Singleton α  a), Singleton.value s = a := 
+            by intro s; cases s; rfl 
 
-def egSing := Singleton.mk 10
+initialize xxx : IO.Ref (Nat) ← IO.mkRef 0
 
-#check egSing
+#check xxx
 
-#check @Singleton.value
+def getX : IO Nat :=
+  do
+    let ref ← xxx
+    return ← ref.get
 
-#eval egSing.value
+def incX : IO Nat :=
+  do
+    let ref ← xxx
+    let value ← ref.get
+    ref.set (value + 1)
+    return value
+
+#check getX
+
+
+def incTask : IO Unit  :=
+  do 
+    let tsk := IO.asTask (dbgSleep 6000 $ fun _ => incX)
+    tsk.map (fun _ => ())
+    return ()
+
+#check incTask
+
+
+-- expanded form of initialize
+def initFn: IO (IO.Ref Nat) := do ← IO.mkRef 0
+@[init initFn] constant yyy : IO.Ref Nat
 
 def pad (s: String)(n: Nat) : String :=
   match n with
   | 0 => s
   | m + 1 => s ++ ⟨Char.ofNat (64 + n) :: []⟩
 
-def addSingsToContextM (values : List Expr) : 
+def addSingletonsToContextM (values : List Expr) : 
      MVarId → TermElabM (List MVarId) :=
      match values with
       | [] => fun m => 
@@ -187,7 +212,7 @@ def addSingsToContextM (values : List Expr) :
           let htype ← inferType h
           let exprOpt : Option Expr ← 
             try
-              let expr ←  mkAppM `mkSingleton #[htype, h]
+              let expr ←  mkAppM `Singleton.mk #[h]
               some expr
             catch _ => none
           match exprOpt with
@@ -195,9 +220,9 @@ def addSingsToContextM (values : List Expr) :
             let n := values.length
             let name := Name.mkSimple (pad "piece" n)
             let newMVarIds ← addToContextM name (← inferType expr) expr m
-            addSingsToContextM t newMVarIds.head!
+            addSingletonsToContextM t newMVarIds.head!
           | none => 
-            addSingsToContextM t m
+            addSingletonsToContextM t m
 
 syntax (name:= exppieces) "exppieces" : tactic
 @[tactic exppieces] def exppiecesImp : Tactic :=
@@ -222,7 +247,7 @@ syntax (name:= exppieces) "exppieces" : tactic
       let lamTypes ←  lamPieces.mapM (fun x => inferType x)
       logInfo m!"lambdaTypes {lamTypes}"
       liftMetaTactic $ fun mvar =>  
-        (addSingsToContextM  (lamImplPieces ++ lamPieces) mvar).run' 
+        (addSingletonsToContextM  (lamImplPieces ++ lamPieces) mvar).run' 
       return ()
 
 set_option pp.all true
@@ -233,5 +258,7 @@ def transitPf {α : Type}:{a b c : α} →
           exppieces
           let p := pieceB.value
           let pg := pieceG.value
+          have h1 : p  = @Eq α a  := by 
+              apply Singleton.value.eq
           rw [eq2] at eq1
           exact eq1
