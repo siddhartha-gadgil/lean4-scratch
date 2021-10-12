@@ -1,6 +1,8 @@
 import Scratch.Eg6
 import Scratch.Egs
 import Lean
+import Std.Data.HashMap
+open Std
 
 open Lean
 open Lean.Meta
@@ -96,6 +98,37 @@ partial def descendants : Nat → Environment → Name → List Name :=
       (offspring ++ desc).eraseDups
     | none => []
 
+initialize expOffCache : IO.Ref (HashMap Expr (List Name)) ←  IO.mkRef (HashMap.empty)
+
+def getCached? (e : Expr) : MetaM (Option (List Name)) := do
+  let cache ← expOffCache.get
+  return (cache.find? e)
+
+def cache (e: Expr) (offs : List Name) : MetaM Unit := do
+  let cache ← expOffCache.get
+  expOffCache.set (cache.insert e offs)
+  return ()
+
+def offSpring? : Bool →  Environment → Name → MetaM (Option (List Name)) :=
+ fun clean env name =>
+  do
+   match envExpr env name with
+   | some e =>
+            let lookup ← getCached? e 
+            match lookup with
+            | some offs => return offs
+            | none =>
+              if clean then 
+                  let enames := exprNames e
+                  let fnames ← enames.filterM (isWhiteListed)
+                  cache e fnames
+                  return some fnames
+                else
+                  let enames := exprNames e
+                  cache e enames
+                  return some enames
+   | none => return none
+
 def constsInfo : TermElabM (Nat × Nat) := 
   withReducible do 
     let env ← getEnv
@@ -125,3 +158,46 @@ def constsInfo : TermElabM (Nat × Nat) :=
 
 #eval Name.mkStr `Nat "this"
 
+syntax (name := timeCmd)  "#time " command : command
+
+open Command
+
+@[commandElab timeCmd] def elabTimeCmd : CommandElab
+  | `(#time%$tk $stx:command) => do
+    let start ← IO.monoMsNow
+    elabCommand stx
+    logInfoAt tk m!"time: {(← IO.monoMsNow) - start}ms"
+  | _ => throwUnsupportedSyntax
+
+def keyNames : MetaM (List Name) := do
+  let env ← getEnv
+  let keypairs ←  env.constants.map₁.toList.filterM (
+    fun (n, _) => (isWhiteListed n))
+  let keys := keypairs.map (fun (n, _) => n)
+  return keys
+
+def offSpringPairs(start: Nat)(bound : Nat)(clean: Bool) : MetaM (Nat × List (Name × (List Name))) :=
+  withReducible do 
+  let env ← getEnv
+  let keys ←  keyNames
+  let kv : List (Name × (List Name)) ←  ((keys.drop start).take bound).filterMapM $ 
+      fun n => 
+          do 
+          let off ← offSpring? clean env n
+          match off with
+          | some l =>  some (n, l.eraseDups)
+          | none => none
+        return (keys.length, kv)
+
+
+/-
+def leanNames : MetaM Nat:=
+  do
+    let k ← keyNames
+    let leanKey ← k.filter (fun n => nameHead n == `Lean)
+    return leanKey.length
+
+
+
+#eval leanNames
+-/
