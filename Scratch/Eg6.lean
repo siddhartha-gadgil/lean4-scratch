@@ -24,4 +24,10 @@ import Scratch.Eg5
 
 #eval incTask
 
-#eval getX
+def snapShot : IO Nat := 
+  do
+    let value ← getX
+    return whnf! value
+
+#eval snapShot
+#print snapShot

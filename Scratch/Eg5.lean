@@ -185,12 +185,38 @@ def incX : IO Nat :=
 
 def incTask : IO Unit  :=
   do 
-    let tsk := IO.asTask (dbgSleep 6000 $ fun _ => incX)
+    let tsk := IO.asTask (dbgSleep 600 $ fun _ => incX)
     tsk.map (fun _ => ())
     return ()
 
 #check incTask
 
+
+def update (snap: IO Nat) : IO Unit :=
+  do
+    let ref ← xxx
+    let value ← snap
+    ref.set value
+    return ()
+
+syntax (name:= snapmem) "snap!" : tactic
+@[tactic snapmem] def snapImpl : Tactic :=
+  fun stx =>
+    liftMetaTactic $ fun mvar => do
+      let value ← getX
+      assignExprMVar mvar (ToExpr.toExpr value)
+      return [] 
+
+syntax (name:= nrmlform)"whnf!" term : term
+@[termElab nrmlform] def normalformImpl : TermElab :=
+  fun stx expectedType? =>
+  match stx with
+  | `(whnf! $s) => 
+      do
+        let t ← Term.elabTerm s none 
+        let e ← whnf t
+        return e
+  | _ => Lean.Elab.throwIllFormedSyntax
 
 -- expanded form of initialize
 def initFn: IO (IO.Ref Nat) := do ← IO.mkRef 0

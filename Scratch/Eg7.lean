@@ -12,6 +12,13 @@ open Lean.Elab
 
 #eval getX
 
+#eval snapShot
+
+#eval update snapShot
+
+
+#eval getX
+
 def hello := "Hello"
 
 def hello.there := "Hello there"
