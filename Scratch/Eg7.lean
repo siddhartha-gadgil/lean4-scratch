@@ -16,6 +16,11 @@ open Lean.Elab
 
 #eval update snapShot
 
+def ss := getXRef xx
+
+#eval ss
+
+
 
 #eval getX
 

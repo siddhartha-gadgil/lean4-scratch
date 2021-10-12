@@ -180,6 +180,16 @@ def incX : IO Nat :=
     ref.set (value + 1)
     return value
 
+def getXRef (ref: IO.Ref Nat) : IO Nat :=
+  do
+    return ← ref.get
+
+def incXRef(ref: IO.Ref Nat) : IO Nat :=
+  do
+    let value ← ref.get
+    ref.set (value + 1)
+    return value
+
 #check getX
 
 
@@ -190,6 +200,7 @@ def incTask : IO Unit  :=
     return ()
 
 #check incTask
+
 
 
 def update (snap: IO Nat) : IO Unit :=

@@ -31,3 +31,11 @@ def snapShot : IO Nat :=
 
 #eval snapShot
 #print snapShot
+
+def s : IO Nat := getXRef xxx
+
+#eval s
+
+initialize xx : IO.Ref (Nat) ← IO.mkRef (← s)
+
+#print xx
