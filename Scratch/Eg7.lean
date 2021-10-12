@@ -67,7 +67,7 @@ def isWhiteListed (declName : Name) : MetaM Bool := do
   let bl ← isBlackListed declName
   return !bl
 
-def getExpr: ConstantInfo →  Option Expr
+def getExpr?: ConstantInfo →  Option Expr
   | ConstantInfo.defnInfo val => some val.value
   | ConstantInfo.thmInfo val => some val.value
   | _ => none
@@ -75,7 +75,7 @@ def getExpr: ConstantInfo →  Option Expr
 def envExpr : Environment → Name → Option Expr :=
   fun env name =>
       let info := (env.find? `Nat.le_total).get!
-      Option.bind info getExpr
+      Option.bind info getExpr?
 
 
 def exprNames: Expr → List Name 
@@ -114,20 +114,37 @@ def offSpring? : Bool →  Environment → Name → MetaM (Option (List Name)) :
   do
    match envExpr env name with
    | some e =>
-            let lookup ← getCached? e 
-            match lookup with
-            | some offs => return offs
-            | none =>
-              if clean then 
-                  let enames := exprNames e
-                  let fnames ← enames.filterM (isWhiteListed)
-                  cache e fnames
-                  return some fnames
-                else
-                  let enames := exprNames e
-                  cache e enames
-                  return some enames
+      let lookup ← getCached? e 
+      match lookup with
+      | some offs => return offs
+      | none =>
+        if clean then 
+            let enames := exprNames e
+            let fnames ← enames.filterM (isWhiteListed)
+            cache e fnames
+            return some fnames
+          else
+            let enames := exprNames e
+            cache e enames
+            return some enames
    | none => return none
+
+def exprOffSpring : Bool →  Expr → MetaM (List Name) :=
+  fun clean e =>
+    do
+    let lookup ← getCached? e 
+        match lookup with
+        | some offs => return offs
+        | none =>
+          if clean then 
+              let enames := exprNames e
+              let fnames ← enames.filterM (isWhiteListed)
+              cache e fnames
+              return fnames
+            else
+              let enames := exprNames e
+              cache e enames
+              return enames
 
 def constsInfo : TermElabM (Nat × Nat) := 
   withReducible do 
@@ -142,7 +159,7 @@ def constsInfo : TermElabM (Nat × Nat) :=
     logInfo m!"local: {ll}"
     let name := `Nat.pred
     let natInfo := (env.find? name).get!
-    let offspring ←  match getExpr natInfo with
+    let offspring ←  match getExpr? natInfo with
       | some e => (exprNames e).filterM (fun n => isWhiteListed n)
       | none => []
     let nat := natInfo.name
@@ -176,6 +193,15 @@ def keyNames : MetaM (List Name) := do
   let keys := keypairs.map (fun (n, _) => n)
   return keys
 
+def keyExprs : MetaM (Array (Name × Expr )) := do
+  let env ← getEnv
+  
+  let keypairs ←  env.constants.map₁.toArray.filterM (
+    fun (n, _) => (isWhiteListed n))
+  let keys := keypairs.filterMap (
+      fun (n, cf) => (getExpr? cf).map (fun e => (n, e)))
+  return keys
+
 def offSpringPairs(start: Nat)(bound : Nat)(clean: Bool) : MetaM (Nat × List (Name × (List Name))) :=
   withReducible do 
   let env ← getEnv
@@ -189,6 +215,17 @@ def offSpringPairs(start: Nat)(bound : Nat)(clean: Bool) : MetaM (Nat × List (N
           | none => none
         return (keys.length, kv)
 
+def offSpringPairsDirect(start: Nat)(bound : Nat)(clean: Bool) : MetaM (Nat × List (Name × (List Name))) :=
+  withReducible do 
+  let env ← getEnv
+  let keyArr ←  keyExprs
+  let keys := keyArr.toList
+  let kv : List (Name × (List Name)) ←  ((keys.drop start).take bound).mapM $ 
+      fun (n, expr) => 
+          do 
+          let off ← exprOffSpring clean expr
+          return (n, off.eraseDups)
+        return (keys.length, kv)
 
 /-
 def leanNames : MetaM Nat:=
