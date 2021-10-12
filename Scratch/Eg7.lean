@@ -58,13 +58,31 @@ def getExpr: ConstantInfo →  Option Expr
   | ConstantInfo.thmInfo val => some val.value
   | _ => none
 
+def envExpr : Environment → Name → Option Expr :=
+  fun env name =>
+      let info := (env.find? `Nat.le_total).get!
+      Option.bind info getExpr
+
+
 def exprNames: Expr → List Name 
  | Expr.const name _ _  => [name]
- | Expr.app f a _ => exprNames f ++ exprNames a
- | Expr.lam _ x y _ => exprNames x ++ exprNames y
- | Expr.forallE _ x y _ => exprNames x ++ exprNames y 
- | Expr.letE _ x y z _ => exprNames x ++ exprNames y ++ exprNames z
+ | Expr.app f a _ => (exprNames f ++ exprNames a).eraseDups
+ | Expr.lam _ x y _ => (exprNames x ++ exprNames y).eraseDups
+ | Expr.forallE _ x y _ => (exprNames x ++ exprNames y).eraseDups 
+ | Expr.letE _ x y z _ => (exprNames x ++ exprNames y ++ exprNames z).eraseDups
  | _ => []
+
+partial def descendants : Nat → Environment → Name → List Name :=
+  fun n env name =>
+  match n with
+  | 0 => []
+  | m + 1 =>  
+    match envExpr env name with
+    | some e => 
+      let offspring := exprNames e
+      let desc := offspring.bind (descendants m env)
+      (offspring ++ desc).eraseDups
+    | none => []
 
 def constsInfo : TermElabM (Nat × Nat) := 
   withReducible do 
@@ -77,13 +95,16 @@ def constsInfo : TermElabM (Nat × Nat) :=
     let n2 := l2.length
     let ll ←  l2.filterM (fun n => isWhiteListed n)
     logInfo m!"local: {ll}"
-    let natInfo := (env.find? `Nat.le_total).get!
+    let name := `Nat.pred
+    let natInfo := (env.find? name).get!
     let offspring ←  match getExpr natInfo with
       | some e => (exprNames e).filterM (fun n => isWhiteListed n)
       | none => []
     let nat := natInfo.name
     logInfo m!"nat: {nat}"
     logInfo m!"offspring: {offspring}"
+    let desc ← (descendants 4 env name).filterM (fun n => isWhiteListed n)
+    logInfo m!"descendants: {desc}"
     return (n1, n2)
 
 #eval constsInfo
