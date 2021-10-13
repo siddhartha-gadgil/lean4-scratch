@@ -44,9 +44,9 @@ def ll (n: Nat) : Nat :=
 #time #eval fib6 30
 
 
-def l : List Nat := List.range 20
+def lll : List Nat := List.range 20
 
-#eval l
+#eval lll
 
 syntax (name:= fibshow) "fib!" : term 
 

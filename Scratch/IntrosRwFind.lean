@@ -41,7 +41,7 @@ def addAllToContextM (values : List Expr) :
           addAllToContextM t newMVarIds.head!
 
 syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
-@[tactic introsRwFind] def introsfindImpl : Tactic :=
+@[tactic introsRwFind] def introsRwfindImpl : Tactic :=
   fun stx  =>
   match stx with
   | `(tactic|introsRwFind) => 

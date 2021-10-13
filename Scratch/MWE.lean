@@ -1,6 +1,8 @@
 import Lean.Meta
 open Nat
 
+namespace MWE
+
 structure ProvedSkip(n m: Nat) where
   result : Nat
   lt : m < n → result = m
@@ -203,3 +205,5 @@ def egAnswer : SatAnswer egStatement := answerSAT egStatement
 def egAnswerNorm : SatAnswer egStatement := whnf! egAnswer
 
 #print egAnswerNorm
+
+end MWE

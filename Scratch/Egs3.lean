@@ -1,42 +1,15 @@
 import Lean.Meta
 import Lean.Elab
+import Scratch.TermSeq
 open Lean.Core
 open Lean.Meta
 open Lean.Elab.Term
 open Lean
 open Nat 
 
-inductive TermSeq where
-  | empty : TermSeq
-  | cons : {α : Type} → (a : α) → (tail: TermSeq) → TermSeq
 
 
 
-syntax (name:= termseq) "#⟨" term,* "⟩" : term
--- macro_rules
---   | `( #⟨$[$xs:term],*⟩ ) => 
---     xs.foldr (fun head accum => 
---       do 
---         let tail ← accum
---         return ← `(TermSeq.cons $head $tail)) `(TermSeq.empty)
-
-@[termElab termseq] def termSeqImpl : TermElab :=
-  fun stx expectedType? =>
-  match stx with
-  | `( #⟨$[$xs:term],*⟩ ) => 
-    do 
-      let terms := xs.map (fun x => elabTerm x none)
-      let empty : TermElabM Expr := return mkConst `TermSeq.empty
-      let combine : TermElabM Expr → TermElabM Expr → TermElabM Expr := 
-        fun (head : TermElabM Expr) (tail : TermElabM Expr) =>
-          do
-            let h ← head
-            let t ← tail
-            let e ← mkAppM ``TermSeq.cons #[h, t]
-            return e
-      let expr : TermElabM Expr := terms.foldr combine empty
-      return ← expr
-  | _ => Elab.throwIllFormedSyntax
 
 partial def decomposeSeq : Expr → MetaM (List Expr) :=
   fun expr => 
@@ -113,15 +86,15 @@ def tstacEg : Nat := by
 
 universe u v
 
-def factorThrough(α : Sort u) (β : Sort v)(b : β ) : (β  → α ) → α   := 
+def factorThroughEg(α : Sort u) (β : Sort v)(b : β ) : (β  → α ) → α   := 
     fun g => g b
 
-def addToContextM(name: Name) (type : Expr)(value: Expr) : 
+def addToContextM3(name: Name) (type : Expr)(value: Expr) : 
      MVarId → MetaM (List MVarId) :=
   fun m => 
       do
         let target ← getMVarType m
-        let exp ← mkAppM `factorThrough #[target, type, value]
+        let exp ← mkAppM `factorThroughEg #[target, type, value]
         let appGoalList ←  apply m exp
         let appGoal := appGoalList.head!
         let ⟨_, introGoal⟩ ←  intro appGoal name  
@@ -137,14 +110,14 @@ syntax (name:= useterm) "use" term ("with" term)? "as" ident : tactic
       let name ← n.getId
       let typ ← elabType t 
       let value ← Elab.Tactic.elabTerm s (some typ) 
-      liftMetaTactic $ addToContextM name typ value
+      liftMetaTactic $ addToContextM3 name typ value
     | `(tactic|use $s as $n) =>
     withMainContext $
     do
       let name ← n.getId
       let value ← Elab.Tactic.elabTerm s none 
       let typ ← inferType value
-      liftMetaTactic $ addToContextM name typ value
+      liftMetaTactic $ addToContextM3 name typ value
     | _ => Elab.throwIllFormedSyntax
 
 example : Nat := by

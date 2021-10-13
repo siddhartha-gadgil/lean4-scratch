@@ -39,7 +39,7 @@ def m30 := exprNat (natExpr 30)
 
 syntax (name := tryapp) term ">>>>>" term : term
 
-@[termElab tryapp] def tryappImpl : TermElab :=
+@[termElab tryapp] def tryappImpl3 : TermElab :=
 fun stx expectedType? =>
   match stx with
   | `($s >>>>> $t) =>
@@ -51,7 +51,7 @@ fun stx expectedType? =>
   | _ => Elab.throwIllFormedSyntax
     
 
-def applyOptM (f x : Expr) : TermElabM (Option Expr) :=
+def applyOptM2 (f x : Expr) : TermElabM (Option Expr) :=
   do
     try
       let expr ← elabAppArgs f #[] #[Arg.expr x] none (explicit := false) (ellipsis := false)
@@ -127,14 +127,14 @@ def evolve (depth: Nat)(init: List Nat) : List Nat :=
 #eval (evolve 1 [2, 5]).map (fun x => x  * 5)
 #eval evolve 2 [1,  4]
 
-def listAppArgs : Expr → List Expr → TermElabM (List Expr) :=
+def listAppArgs2 : Expr → List Expr → TermElabM (List Expr) :=
   fun f args =>
     match args with
     | [] => return []
     | x :: ys => 
       do
-        let head ← applyOptM f x
-        let tail ← listAppArgs f ys
+        let head ← applyOptM2 f x
+        let tail ← listAppArgs2 f ys
         match head with
         | some expr => return expr :: tail
         | none => return tail
@@ -144,32 +144,32 @@ def listApps : List Expr →  List Expr  → TermElabM (List Expr)  := fun l arg
   | [] => return []
   | x :: ys => 
     do
-      let head ← listAppArgs x args
+      let head ← listAppArgs2 x args
       let tail ← listApps ys args
       return head ++ tail
 
-def double: Nat→ Nat := fun x => x + x
+def doubleFn: Nat→ Nat := fun x => x + x
 
 def expList := [natExpr 1,  natExpr 3, Lean.mkConst `Nat.succ, Lean.mkConst `Nat.zero, 
-              Lean.mkConst `double]
+              Lean.mkConst `doubleFn]
 
-def evListEg := listApps expList expList
+def evListEg2 := listApps expList expList
 
-#eval evListEg
+#eval evListEg2
 
 #check Unit.unit
 
 #check Prod
 
-def mkProd {α β : Type} (a: α ) (b: β) : Prod α β := ⟨a, b⟩
+def mkProdFn {α β : Type} (a: α ) (b: β) : Prod α β := ⟨a, b⟩
 
-def foldExps : List Expr → TermElabM Expr  
+def foldExps2 : List Expr → TermElabM Expr  
   | [] => return (mkConst `Unit.unit)
   | x :: ys => 
     do
-      let tail ← foldExps ys
+      let tail ← foldExps2 ys
       let exp ← 
-        mkAppM' (Lean.mkConst `mkProd) #[x, tail]
+        mkAppM' (Lean.mkConst `mkProdFn) #[x, tail]
         -- elabAppArgs 
         -- (Lean.mkConst `List.cons) #[] #[Arg.expr x, Arg.expr tail] none 
         --   (explicit := false) (ellipsis := false)
@@ -178,14 +178,14 @@ def foldExps : List Expr → TermElabM Expr
 def listAppExp : List Expr → List Expr → TermElabM Expr := fun l args =>
   do
     let ls ← listApps l args
-    let exp ← foldExps ls
+    let exp ← foldExps2 ls
     return exp
 
 def evListExpEg := listAppExp expList expList
 
 #check @List.cons
 
-#eval foldExps []
+#eval foldExps2 []
 
 #eval evListExpEg
 

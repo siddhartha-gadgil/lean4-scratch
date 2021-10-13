@@ -48,28 +48,28 @@ syntax (name:= introsFind) "introsFind" (term)? : tactic
   | _ => Elab.throwIllFormedSyntax
 
 
-def modusPonens {α β : Type} : α → (α → β) → β := by
+def mmodusPonens {α β : Type} : α → (α → β) → β := by
       introsFind
 
-def modus_ponens (α β : Prop) : α → (α → β) → β := by
+def mmodus_ponens (α β : Prop) : α → (α → β) → β := by
       introsFind
 
-#print modusPonens
-#print modus_ponens
+#print mmodusPonens
+#print mmodus_ponens
 
-def constantFunction (α β : Type)  : α → β → α  := by
+def constantFunc (α β : Type)  : α → β → α  := by
       introsFind
 
-def constant_implication (α β : Prop)  : α → β → α := by
+def constant_implica (α β : Prop)  : α → β → α := by
       introsFind
 
-def reflImpl (α : Prop) : α → α  := by
+def reflImpll (α : Prop) : α → α  := by
       introsFind
 
-def autoId (α : Type) : α → α := by
+def autoIdd (α : Type) : α → α := by
       introsFind 
 
-#print autoId
+#print autoIdd
 
-theorem doubleMP{α β γ : Prop} : α → (α → β) →  (β →  γ) → γ  := by
+theorem doublleMP{α β γ : Prop} : α → (α → β) →  (β →  γ) → γ  := by
       introsFind 2

@@ -235,7 +235,7 @@ def eglit := minletImpl (Syntax.mkStrLit "minlet!") none
 
 #check eglit
 
-def blah := Meta.isExprDefEqAux
+def blahh := Meta.isExprDefEqAux
 
 def nameLess (name: Name) := 1
 

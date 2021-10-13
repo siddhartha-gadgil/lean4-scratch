@@ -5,7 +5,7 @@ open Lean.Meta
 open Lean.Elab.Term
 open Lean
 
-def mvarMeta : MetaM Expr := do
+def mvarMeta4 : MetaM Expr := do
   let mvar ← mkFreshExprMVar (some (mkConst ``Nat))
   let mvarId := mvar.mvarId!
   let mvar2 ← mkFreshExprMVar (some (mkConst ``Nat)) -- none works too
@@ -19,16 +19,16 @@ def mvarMeta : MetaM Expr := do
 
 syntax (name := minass) "minass!" : term
 
-@[termElab minass] def minAssImpl : TermElab :=
+@[termElab minass] def minAssImpl4 : TermElab :=
   fun stx expectedType? =>
     do
-      let e ← mvarMeta
+      let e ← mvarMeta4
       return  e
 
-def chkMinAss  := minass!
+def chkMinAss4  := minass!
 
-#check chkMinAss
-#eval chkMinAss 2
+#check chkMinAss4
+#eval chkMinAss4 2
 
 theorem zero_add : (n : Nat) →  0 + n = n := by
   intro n

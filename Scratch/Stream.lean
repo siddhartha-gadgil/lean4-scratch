@@ -93,13 +93,13 @@ def fff := evolve! doubler step 6
 inductive ListWit : List Nat → Prop where
   | data: (l : List Nat) → ListWit l
 
-def factorThrough{α β : Type}(b : β ) : (β  → α ) → α   := 
+def factorThroughFn{α β : Type}(b : β ) : (β  → α ) → α   := 
     fun g => g b
 
 def egn: Nat := by
   have l := List.range 20
   have lw := ListWit.data l
   have llw := ListWit.data (doubler.takeList 25)
-  apply (factorThrough l)
+  apply (factorThroughFn l)
   intro data
   exact 3

@@ -6,7 +6,7 @@ open Meta
 open Elab
 open Lean.Elab.Tactic
 
-def rwPush  (mvarId : MVarId) (e : Expr) (heq : Expr) 
+def rwPushEq  (mvarId : MVarId) (e : Expr) (heq : Expr) 
       (symm : Bool := false): MetaM (Expr × Nat) :=
   do
     let t ← inferType e
@@ -20,7 +20,7 @@ def rwActOptM (mvarId : MVarId) (e : Expr) (heq : Expr)
       (symm : Bool := false) : MetaM ( Option Expr) :=
       do
         try
-          let res ← rwPush mvarId e heq symm
+          let res ← rwPushEq mvarId e heq symm
           return some res.1 
         catch e =>
           return none

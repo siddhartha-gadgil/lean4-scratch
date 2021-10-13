@@ -1,5 +1,6 @@
 import Scratch.Eg6
 import Scratch.Egs
+import Scratch.Benchmark
 import Lean
 import Std.Data.HashMap
 open Std
@@ -26,7 +27,7 @@ def ss := getXRef xx
 
 #eval getX
 
-def hello := "Hello"
+def helloo := "Hello"
 
 def hello.there := "Hello there"
 
@@ -204,16 +205,7 @@ def constsInfo : TermElabM (Nat × Nat) :=
 
 #eval Name.mkStr `Nat "this"
 
-syntax (name := timeCmd)  "#time " command : command
 
-open Command
-
-@[commandElab timeCmd] def elabTimeCmd : CommandElab
-  | `(#time%$tk $stx:command) => do
-    let start ← IO.monoMsNow
-    elabCommand stx
-    logInfoAt tk m!"time: {(← IO.monoMsNow) - start}ms"
-  | _ => throwUnsupportedSyntax
 
 def keyNames : MetaM (List Name) := do
   let env ← getEnv
