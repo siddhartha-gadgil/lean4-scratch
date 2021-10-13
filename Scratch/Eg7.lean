@@ -174,6 +174,10 @@ def exprOffSpring : Bool →  Expr → MetaM (List Name) :=
 def constsInfo : TermElabM (Nat × Nat) := 
   withReducible do 
     let env ← getEnv
+    logInfo m!"main module : {env.mainModule}"
+    let imps := env.allImportedModuleNames
+    env.displayStats
+    logInfo m!"imports: {imps}"
     let l1 ←  env.constants.map₁.toList.filterM (
       fun (n, _) => (isWhiteListed n))
     let n1 := l1.length
