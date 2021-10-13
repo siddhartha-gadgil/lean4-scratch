@@ -74,7 +74,7 @@ def getExpr?: ConstantInfo →  Option Expr
 
 def envExpr : Environment → Name → Option Expr :=
   fun env name =>
-      let info := (env.find? `Nat.le_total).get!
+      let info := (env.find? name).get!
       Option.bind info getExpr?
 
 
@@ -92,10 +92,11 @@ partial def recExprNames: Environment → Expr → MetaM (List Name)
       if ← (isWhiteListed name) 
         then [name] 
         else
+        if ← name.isInternal  then
           match envExpr env name with
           | some e => recExprNames env e
           | none => []
-        
+        else []        
  | env, Expr.app f a _ => 
         do  
           let s := ((← recExprNames env f) ++ (← recExprNames env a))
@@ -143,8 +144,8 @@ def offSpring? : Bool →  Environment → Name → MetaM (Option (List Name)) :
       | some offs => return offs
       | none =>
         if clean then 
-            let enames := exprNames e
-            let fnames ← enames.filterM (isWhiteListed)
+            -- let enames := exprNames e
+            let fnames ← recExprNames env e
             cache e fnames
             return some fnames
           else
