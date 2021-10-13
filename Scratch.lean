@@ -3,6 +3,8 @@ import Scratch.Eg9
 import Scratch.TermSeq
 import Lean
 import Lean.Meta
+import Lean.Data.Name
+import Lean.Util.Path
 open Lean
 open Meta
 open Nat
@@ -33,6 +35,11 @@ def main (args: List String) : IO Unit := do
   let _ ← initSearchPath (some "build:build/lib/lean")
   let sp ← searchPathRef.get
   IO.println sp
+  let fname ← sp.findWithExt "olean" `Init
+  IO.println fname
+  -- IO.println (← fname.get!.pathExists)
+  -- let (mod, region) ← readModuleData fname.get!
+  IO.println "loaded"
   let initializing ← IO.initializing
   if initializing then 
       throw (IO.userError "environment objects cannot be created during initialization")

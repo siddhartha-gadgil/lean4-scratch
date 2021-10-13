@@ -3,6 +3,7 @@ import Lean.Util.FindExpr
 import Lean.Util.Profile
 import Lean
 import Lean.Meta
+import Init.System
 import Scratch.Eg7
 open Lean
 open Meta
@@ -59,3 +60,5 @@ def egNames : IO (List Name) :=
     return l.take 20
   
 unsafe def coreNames := unsafeIO egNames
+
+#check System.FilePath
