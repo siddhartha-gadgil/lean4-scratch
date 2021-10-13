@@ -51,3 +51,11 @@ def showEnv : TermElabM Unit :=
     return ()
 
 #eval showEnv
+
+def egNames : IO (List Name) :=
+  do
+    let env ← impEnv
+    let l ← env.constants.map₁.toList.map (fun (n, _) => n)
+    return l.take 20
+  
+unsafe def coreNames := unsafeIO egNames

@@ -1,4 +1,5 @@
 import Scratch.Egs
+import Scratch.Eg9
 import Scratch.TermSeq
 import Lean
 import Lean.Meta
@@ -14,6 +15,8 @@ open Lean
 
 def main (args: List String) : IO Unit := do
   IO.println "Hello, world!"
+  -- let nameList ← egNames
+  -- IO.println nameList
   let n : Nat := 
   match args.head? with
   | none => 3 
