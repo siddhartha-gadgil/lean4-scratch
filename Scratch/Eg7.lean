@@ -86,6 +86,30 @@ def exprNames: Expr → List Name
  | Expr.letE _ x y z _ => (exprNames x ++ exprNames y ++ exprNames z).eraseDups
  | _ => []
 
+partial def recExprNames: Environment → Expr → MetaM (List Name) 
+ | env, Expr.const name _ _  =>
+    do
+      if ← (isWhiteListed name) 
+        then [name] 
+        else
+          match envExpr env name with
+          | some e => recExprNames env e
+          | none => []
+        
+ | env, Expr.app f a _ => 
+        do  
+          let s := ((← recExprNames env f) ++ (← recExprNames env a))
+          return s.eraseDups
+ | env, Expr.lam _ x y _ => 
+        do
+          return ((← recExprNames env x) ++ (← recExprNames env y)).eraseDups
+ | env, Expr.forallE _ x y _ => do
+        return  ((← recExprNames env x) ++ (← recExprNames env y)).eraseDups 
+ | env, Expr.letE _ x y z _ => 
+          return ((← recExprNames env x) ++ 
+                    (← recExprNames env y) ++ (← recExprNames env z)).eraseDups
+ | env, _ => []
+
 partial def descendants : Nat → Environment → Name → List Name :=
   fun n env name =>
   match n with
