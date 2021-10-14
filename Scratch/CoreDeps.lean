@@ -55,4 +55,12 @@ def writeTriples : IO Unit := do
 
 #eval writeTriples
 
+def egEval (name: Name) : IO (Option (List Name)) := do
+  let env ← coreEnv
+  offSpring? env name
+
+#eval egEval `Nat.pred_le_pred
+
+#print Nat.pred_le_pred
+
 end CoreDeps

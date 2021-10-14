@@ -18,6 +18,14 @@ def isBlackListed (env: Environment) (declName : Name) : IO  Bool := do
   <||> isRecCore env declName
   <||> isMatcherCore env declName
 
+def isAux (env: Environment) (declName : Name) : IO  Bool := do
+  isAuxRecursor env declName
+  <||> isNoConfusion env declName
+  
+def isNotAux (env: Environment) (declName : Name) : IO  Bool := do
+  let nAux ← isAux env declName
+  return (not nAux)
+
 def isWhiteListed (env: Environment)(declName : Name) : IO Bool := do
   let bl ← isBlackListed env declName
   return !bl
@@ -70,7 +78,7 @@ partial def recExprNames: Environment → Expr → IO (List Name) :=
         if ← (isWhiteListed env name) 
           then [name] 
           else
-          if ← name.isInternal  then
+          if ← (isNotAux env name)  then
             match nameExpr? env name with
             | some e => recExprNames env e
             | none => []

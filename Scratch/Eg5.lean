@@ -226,6 +226,7 @@ syntax (name:= nrmlform)"whnf!" term : term
       do
         let t ← Term.elabTerm s none 
         let e ← whnf t
+        logInfo m!"whnf : {e}"
         return e
   | _ => Lean.Elab.throwIllFormedSyntax
 
