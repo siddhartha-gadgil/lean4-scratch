@@ -62,3 +62,11 @@ def egNames : IO (List Name) :=
 unsafe def coreNames := unsafeIO egNames
 
 #check System.FilePath
+def myFile := System.mkFilePath ["data/myfile.txt"]
+
+#check IO.FS.writeFile
+def helloFile := IO.FS.writeFile myFile "hello world\n"
+
+#eval helloFile
+
+#eval IO.FS.readFile myFile
