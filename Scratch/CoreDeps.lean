@@ -10,6 +10,7 @@ open Std
 open Lean
 open Lean.Meta
 open ConstDeps
+open Elab
 
 namespace CoreDeps
 
@@ -55,12 +56,34 @@ def writeTriples : IO Unit := do
 
 #eval writeTriples
 
-def egEval (name: Name) : IO (Option (List Name)) := do
+def egEval (name: Name) : TermElabM (Option (List Name)) := do
   let env ← coreEnv
-  offSpring? env name
+  offSpringV? env name
+
+set_option pp.all true
 
 #eval egEval `Nat.pred_le_pred
 
 #print Nat.pred_le_pred
 
+def np : IO Expr :=
+  do 
+    let env ← coreEnv
+    return (← nameExpr? env `Nat.pred_le_pred).get!
+
+#eval np
+
+def npt : IO (Option Expr) := 
+  do 
+    let n ← np
+    let env ← coreEnv
+    inferTypeIO n env
+
+#eval npt
+
 end CoreDeps
+
+
+#print instLENat
+
+#check @LE.le

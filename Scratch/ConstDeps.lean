@@ -8,6 +8,7 @@ import Std.Data.HashMap
 open Std
 open Lean
 open Lean.Meta
+open Elab
 
 namespace ConstDeps
 
@@ -65,6 +66,19 @@ def cache (e: Expr) (offs : List Name) : IO Unit := do
   expNamesCache.set (cache.insert e offs)
   return ()
 
+def RunToIO {α : Type}(n: MetaM α) (env: Environment) : IO (Except Exception α)    :=
+  let core := n.run' {}
+  let state : Core.State := Core.State.mk env (firstFrontendMacroScope + 1) {} {}
+  let eio := core.run' {} state
+  let io' : IO (Except Exception α)  :=  eio.toIO'
+  io'
+
+def inferTypeIO (expr: Expr) (env: Environment) : IO (Option Expr) := do
+  let mtype : MetaM Expr := inferType expr
+  let n ← RunToIO mtype env
+  match n with
+  | Except.ok n' => some n'
+  | _ => none
 
 partial def recExprNames: Environment → Expr → IO (List Name) :=
   fun env e =>
@@ -83,14 +97,16 @@ partial def recExprNames: Environment → Expr → IO (List Name) :=
             | some e => recExprNames env e
             | none => []
           else []        
-      | Expr.app f a data => 
+      | Expr.app f a _ => 
           do  
-            let bi := data.binderInfo
-            let impl := bi.isImplicit || bi.isStrictImplicit || bi.isInstImplicit
+            -- let ftype ← inferTypeIO f env
+            let ftype ← inferTypeIO f env
+            let expl := 
+              (ftype.map (fun ft => ft.data.binderInfo.isExplicit)).getD true
             let fdeps ← recExprNames env f
             let adeps ← recExprNames env a
             let s := 
-              if impl then fdeps else
+              if !expl then fdeps else
                 fdeps ++ adeps
             return s.eraseDups
       | Expr.lam _ _ b _ => 
@@ -109,6 +125,62 @@ def offSpring?(env: Environment) (name: Name) : IO (Option (List Name)) := do
   match expr with
   | some e => recExprNames env e
   | none => return none
+
+partial def recExprNamesV: Environment → Expr → TermElabM (List Name) :=
+  fun env e =>
+  do 
+  logInfo m!"resolving {e}"
+  -- match ← getCached? e with
+  -- | some offs => return offs
+  -- | none =>
+    let res ← match e with
+      | Expr.const name _ _  =>
+        do
+        if ← (isWhiteListed env name) 
+          then
+            logInfo m!"Stopping with {name}" 
+            [name] 
+          else
+          if ← (name.isInternal)  then
+            logInfo m!"Continuing past {name}"
+            match nameExpr? env name with
+            | some e =>
+              logInfo m!"Continuing with {e}" 
+              recExprNamesV env e
+            | none => []
+          else []        
+      | Expr.app f a data => 
+          do  
+            let ftype ← inferType f
+            let bi := ftype.data.binderInfo
+            let impl := !bi.isExplicit
+            logInfo m!"Function application with {f} and {a}; implicit: {impl}"
+            let fdeps ← recExprNamesV env f
+            let adeps ← recExprNamesV env a
+            let s := 
+              if impl then fdeps else
+                fdeps ++ adeps
+            return s.eraseDups
+      | Expr.lam _ _ b _ => 
+          do
+            logInfo m!"Lembda with body {b}"
+            return ← recExprNamesV env b 
+      | Expr.forallE _ _ b _ => do
+          logInfo m!"Forall with body {b}"
+          return  ← recExprNamesV env b 
+      | Expr.letE _ _ _ b _ => 
+            logInfo m!"Let with body {b}"
+            return ← recExprNamesV env b
+      | _ => []
+    cache e res
+    return res
+
+def offSpringV?(env: Environment) (name: Name) : TermElabM (Option (List Name)) := do
+  let expr ← nameExpr? env name
+  match expr with
+  | some e => recExprNamesV env e
+  | none => return none
+
 
 def offSpringPairs(envIO: IO Environment)(startOpt: Option Nat)(boundOpt : Option Nat)
               : IO (List (Name × (List Name))) :=
