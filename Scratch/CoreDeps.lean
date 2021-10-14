@@ -21,13 +21,24 @@ def corePairs := offSpringPairs coreEnv none none
 
 #check corePairs
 
+def quote : String →  String := fun s => "\"" ++ s ++ "\""
+
 def corePairsString : IO String := do
   let pairs ← corePairs
   let blob : String := pairs.foldl (
         fun s (p, l) => 
-          s ++ p.toString ++ "\t" ++ l.toString  ++ "\n") ""
+          s ++ "[" ++ quote (p.toString) ++ "," ++ l.toString  ++ "]\n") ""
   return blob
 
+#eval corePairsString
 
+def coreDepFile := System.mkFilePath ["data/coreDeps.txt"]
+
+def writeBlob : IO Unit := do
+  let blob ← corePairsString
+  IO.FS.writeFile coreDepFile blob
+  return ()
+
+#eval writeBlob
 
 end CoreDeps
