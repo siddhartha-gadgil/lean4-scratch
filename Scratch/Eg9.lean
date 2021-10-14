@@ -65,7 +65,10 @@ unsafe def coreNames := unsafeIO egNames
 def myFile := System.mkFilePath ["data/myfile.txt"]
 
 #check IO.FS.writeFile
-def helloFile := IO.FS.writeFile myFile "hello world\n"
+def helloFile : IO Unit := 
+  do 
+    IO.FS.writeFile myFile "IO:\thello world\n"
+    return ()
 
 #eval helloFile
 

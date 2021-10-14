@@ -75,8 +75,8 @@ def getExpr?: ConstantInfo →  Option Expr
 
 def envExpr : Environment → Name → Option Expr :=
   fun env name =>
-      let info := (env.find? name).get!
-      Option.bind info getExpr?
+      let info := (env.find? name)
+      Option.bind info ConstantInfo.value?
 
 
 def exprNames: Expr → List Name 
