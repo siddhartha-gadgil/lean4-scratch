@@ -75,9 +75,15 @@ partial def recExprNames: Environment → Expr → IO (List Name) :=
             | some e => recExprNames env e
             | none => []
           else []        
-      | Expr.app f a _ => 
+      | Expr.app f a data => 
           do  
-            let s := ((← recExprNames env f) ++ (← recExprNames env a))
+            let bi := data.binderInfo
+            let impl := bi.isImplicit || bi.isStrictImplicit || bi.isInstImplicit
+            let fdeps ← recExprNames env f
+            let adeps ← recExprNames env a
+            let s := 
+              if impl then fdeps else
+                fdeps ++ adeps
             return s.eraseDups
       | Expr.lam _ _ b _ => 
           do

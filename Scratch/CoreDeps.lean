@@ -15,7 +15,7 @@ namespace CoreDeps
 
 def coreEnv : IO Environment := importModules ([⟨`Init, false⟩]) Options.empty
 
-#eval offSpringPairs coreEnv (some 0) (some 100)
+-- #eval offSpringPairs coreEnv (some 0) (some 100)
 
 def corePairs := offSpringPairs coreEnv none none
 
