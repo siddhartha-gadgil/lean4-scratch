@@ -66,19 +66,20 @@ def cache (e: Expr) (offs : List Name) : IO Unit := do
   expNamesCache.set (cache.insert e offs)
   return ()
 
-def RunToIO {α : Type}(n: MetaM α) (env: Environment) : IO (Except Exception α)    :=
+def RunToIO? {α : Type}(n: MetaM α) (env: Environment) : IO (Option α)    :=
+  do
   let core := n.run' {}
   let state : Core.State := Core.State.mk env (firstFrontendMacroScope + 1) {} {}
   let eio := core.run' {} state
-  let io' : IO (Except Exception α)  :=  eio.toIO'
-  io'
+  let io' : (Except Exception α)  ←   eio.toIO'
+  match io' with
+    | Except.ok a => return some a
+    | Except.error e => return none
+  
 
 def inferTypeIO (expr: Expr) (env: Environment) : IO (Option Expr) := do
   let mtype : MetaM Expr := inferType expr
-  let n ← RunToIO mtype env
-  match n with
-  | Except.ok n' => some n'
-  | _ => none
+  RunToIO? mtype env
 
 partial def recExprNames: Environment → Expr → IO (List Name) :=
   fun env e =>
