@@ -27,10 +27,8 @@ def corePairsString : IO String := do
   let pairs ← corePairs
   let blob : String := pairs.foldl (
         fun s (p, l) => 
-          s ++ "[" ++ quote (p.toString) ++ "," ++ l.toString  ++ "]\n") ""
+          s ++ "[" ++  (p.toString) ++ "," ++ l.toString  ++ "]\n") ""
   return blob
-
-#eval corePairsString
 
 def coreDepFile := System.mkFilePath ["data/coreDeps.txt"]
 
@@ -40,5 +38,21 @@ def writeBlob : IO Unit := do
   return ()
 
 #eval writeBlob
+
+def coreTriplesString : IO String := do
+  let pairs ← offSpringTriple coreEnv none none
+  let blob : String := pairs.foldl (
+        fun s (p, l, lt) => 
+          s ++ "[" ++  (p.toString) ++ "," ++ l.toString  
+            ++ "," ++ lt.toString ++ "]\n") ""
+  return blob
+
+def writeTriples : IO Unit := do
+  let blob ← coreTriplesString
+  let file := System.mkFilePath ["data/coreTriples.txt"]
+  IO.FS.writeFile file blob
+  return ()
+
+#eval writeTriples
 
 end CoreDeps

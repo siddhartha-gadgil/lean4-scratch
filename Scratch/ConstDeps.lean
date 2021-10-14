@@ -29,6 +29,13 @@ def constantNames (envIO: IO Environment) : IO (List Name) := do
   let names ← allNames.filterM (isWhiteListed env)
   return names
 
+def constantNameTypes (envIO: IO Environment) : IO (List (Name ×  Expr)) := do
+  let env ← envIO
+  let decls ← env.constants.map₁.toList
+  let allNames := decls.map $ fun (name, dfn) => (name, dfn.type) 
+  let names ← allNames.filterM (fun (name, _) => isWhiteListed env name)
+  return names
+
 def namePrefixes (envIO: IO Environment) : IO (List Name) := do
   let names ← constantNames envIO
   let prefixes := names.map $ fun name => name.getPrefix
@@ -107,6 +114,26 @@ def offSpringPairs(envIO: IO Environment)(startOpt: Option Nat)(boundOpt : Optio
           let off ← offSpring?  env n
           match off with
           | some l =>  some (n, l)
+          | none => none
+        return kv
+
+def offSpringTriple(envIO: IO Environment)(startOpt: Option Nat)(boundOpt : Option Nat)
+              : IO (List (Name × (List Name) × (List Name) )) :=
+  do
+  let env ← envIO
+  let keys ←  constantNameTypes  envIO
+  let start := startOpt.getD 0
+  let keyRange := 
+    match boundOpt with
+    | some bound => 
+      (keys.drop start).take bound
+    | none => keys.drop start
+  let kv : List (Name × (List Name) × (List Name)) ←  (keyRange).filterMapM $ 
+      fun (n, type) => 
+          do 
+          let off ← offSpring?  env n
+          match off with
+          | some l =>  some (n, l, ← recExprNames env type)
           | none => none
         return kv
 
