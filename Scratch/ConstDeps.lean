@@ -79,14 +79,13 @@ partial def recExprNames: Environment → Expr → IO (List Name) :=
           do  
             let s := ((← recExprNames env f) ++ (← recExprNames env a))
             return s.eraseDups
-      | Expr.lam _ x y _ => 
+      | Expr.lam _ _ b _ => 
           do
-            return ((← recExprNames env x) ++ (← recExprNames env y)).eraseDups
-      | Expr.forallE _ x y _ => do
-          return  ((← recExprNames env x) ++ (← recExprNames env y)).eraseDups 
-      | Expr.letE _ x y z _ => 
-            return ((← recExprNames env x) ++ 
-                      (← recExprNames env y) ++ (← recExprNames env z)).eraseDups
+            return ← recExprNames env b 
+      | Expr.forallE _ _ b _ => do
+          return  ← recExprNames env b 
+      | Expr.letE _ _ _ b _ => 
+            return ← recExprNames env b
       | _ => []
     cache e res
     return res
