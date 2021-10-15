@@ -135,6 +135,41 @@ partial def lambdaImplicits  (e  : Expr) (makeExplicit : Bool) :
       | _ => pure e
   | _ => pure e
 
+#check @Prod.mk
+
+def three3 := PProd.mk "three" 3
+
+#check three3
+
+def checkProdMeta : TermElabM Expr :=
+  do
+    let env ← getEnv
+    let ee ← Term.mkConst `three3
+    let u ← mkFreshLevelMVar
+    let v ← mkFreshLevelMVar
+    let α ← mkFreshExprMVar (mkSort u)
+    let β  ← mkFreshExprMVar (mkSort v)
+    let a ← mkFreshExprMVar α 
+    let b ← mkFreshExprMVar β 
+    let f := mkAppN (Lean.mkConst ``PProd.mk [u, v]) #[α, β, a, b]
+    logInfo f
+    if ← isDefEq f ee
+      then
+        logInfo m!"unified"  
+        return b
+      else 
+        logInfo m!"did not unify"
+        return a
+
+syntax (name:= checkmeta) "checkMeta!" : term
+@[termElab checkmeta] def chkmImpl : TermElab :=
+  fun _ _ => return ← checkProdMeta
+
+def chk : Nat := checkMeta!
+
+#eval chk
+
+#eval checkProdMeta
 
 def getFnsAux : Expr → List Expr → List Expr
   | Expr.app f a _, l  => getFnsAux f (f :: a :: l) 
@@ -152,7 +187,6 @@ def lamImpl (e: Expr) (mkExplicit : Bool) : TermElabM Expr := do
   let e ← lambdaImplicits e  mkExplicit
   return e
 
-universe u
 
 inductive Singleton (α : Type u): α →  Type u where
   | mk :  (a : α) → Singleton α  a

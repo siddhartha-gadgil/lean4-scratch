@@ -169,7 +169,7 @@ def foldExps2 : List Expr → TermElabM Expr
     do
       let tail ← foldExps2 ys
       let exp ← 
-        mkAppM' (Lean.mkConst `mkProdFn) #[x, tail]
+        mkAppM `Prod.mk  #[x, tail]
         -- elabAppArgs 
         -- (Lean.mkConst `List.cons) #[] #[Arg.expr x, Arg.expr tail] none 
         --   (explicit := false) (ellipsis := false)
