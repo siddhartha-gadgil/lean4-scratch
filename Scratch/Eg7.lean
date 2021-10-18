@@ -9,6 +9,9 @@ open Lean
 open Lean.Meta
 open Lean.Elab
 
+-- experiments with subtypes, caching incomplete
+-- correctly implemented in `ConstDeps`
+
 #eval getX
 
 #eval incX
@@ -247,15 +250,3 @@ def offSpringPairsDirect(start: Nat)(bound : Nat)(clean: Bool) : MetaM (Nat × L
           let off ← exprOffSpring clean expr
           return (n, off.eraseDups)
         return (keys.length, kv)
-
-/-
-def leanNames : MetaM Nat:=
-  do
-    let k ← keyNames
-    let leanKey ← k.filter (fun n => nameHead n == `Lean)
-    return leanKey.length
-
-
-
-#eval leanNames
--/

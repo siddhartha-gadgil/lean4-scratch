@@ -1,6 +1,6 @@
-/- Experiments with loading environments and writing to files.
-Cleaned up form in `CoreDeps`
--/
+-- Experiments with loading environments and writing to files.
+-- Cleaned up form in `CoreDeps`
+
 import Lean.Util.Path
 import Lean.Util.FindExpr
 import Lean.Util.Profile

@@ -9,7 +9,11 @@ open Nat
 
 
 
-
+-- testing decomposition, used later (and better forms)
+-- also logging info in tactics and elaborators
+-- also adding a definition in a tactic context
+-- with a tactic doing this
+-- experiments with thunks, lazylists
 
 partial def decomposeSeq : Expr → MetaM (List Expr) :=
   fun expr => 

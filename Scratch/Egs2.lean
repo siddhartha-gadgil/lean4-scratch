@@ -5,6 +5,10 @@ open Lean.Meta
 open Lean.Elab.Term
 open Lean
 
+-- experiments with syntax
+-- expressions for numbers
+-- function application
+
 def syntaxPreProcess (stx: Syntax) : MacroM Syntax :=
   match stx with
   | `(this! $s) =>  `(- $s)

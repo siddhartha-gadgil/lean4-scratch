@@ -1,3 +1,5 @@
+-- experiments with caching
+
 import Scratch.Eg5
 
 #check xxx
