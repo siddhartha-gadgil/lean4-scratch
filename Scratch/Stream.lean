@@ -5,6 +5,8 @@ open Lean.Meta
 open Lean.Elab.Term
 open Lean
 
+-- streams in the scala sense to memoize
+
 inductive StreamSeq (α  : Type) : Type where
   | nil : StreamSeq α
   | cons : α → Thunk (StreamSeq α) → StreamSeq α

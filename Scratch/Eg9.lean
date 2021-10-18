@@ -1,3 +1,6 @@
+/- Experiments with loading environments and writing to files.
+Cleaned up form in `CoreDeps`
+-/
 import Lean.Util.Path
 import Lean.Util.FindExpr
 import Lean.Util.Profile
@@ -60,6 +63,8 @@ def egNames : IO (List Name) :=
     return l.take 20
   
 unsafe def coreNames := unsafeIO egNames
+
+#check coreNames
 
 #check System.FilePath
 def myFile := System.mkFilePath ["data/myfile.txt"]

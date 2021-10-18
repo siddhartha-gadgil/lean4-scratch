@@ -68,8 +68,8 @@ def egEval (name: Name) : TermElabM (Option (List Name)) := do
 
 set_option pp.all true
 
-#eval egEvalV `Nat.pred_le_pred
+-- #eval egEvalV `Nat.pred_le_pred
 
-#print Nat.pred_le_pred
+-- #print Nat.pred_le_pred
 
 end CoreDeps
