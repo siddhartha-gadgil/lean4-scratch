@@ -1,6 +1,6 @@
 import Lean.Meta
 import Lean.Elab
-open Lean Meta Elab Tactic Core 
+open Lean Meta Elab Tactic
 open Lean.Elab.Term
 
 def sigmaTypeExpr? (eType: Expr) : MetaM (Option (Expr × Expr)) :=
@@ -33,11 +33,11 @@ def existsTypeExpr? (eType: Expr) : MetaM (Option (Expr × Expr)) :=
       else 
         return none
 
-syntax (name:= useTactic) "use" term : tactic
-@[tactic useTactic] def useTacticImpl : Tactic :=
+syntax (name:= naiveUseTactic) "naiveUse" term : tactic
+@[tactic naiveUseTactic] def naiveUseTacticImpl : Tactic :=
   fun stx => 
   match stx with
-  | `(tactic|use $t) =>
+  | `(tactic|naiveUse $t) =>
     do
     let mvar ← getMainGoal 
     let eType ← getMainTarget
@@ -46,9 +46,7 @@ syntax (name:= useTactic) "use" term : tactic
     | some (α , β) =>
       let a ← Tactic.elabTerm t α  
       let bType ← whnf  (mkApp β a)
-      logInfo m!"bType : {bType}"
       let b ← mkFreshExprMVar bType
-      logInfo m!"β : {β}"
       let exp ←  mkAppOptM `Sigma.mk #[α, β, a, b]
       assignExprMVar mvar exp
       replaceMainGoal [b.mvarId!]
@@ -59,15 +57,13 @@ syntax (name:= useTactic) "use" term : tactic
       | some (α , β) =>
       let a ← Tactic.elabTerm t α  
       let bType ← whnf  (mkApp β a)
-      logInfo m!"bType : {bType}"
       let b ← mkFreshExprMVar bType
-      logInfo m!"β : {β}"
       let exp ←  mkAppOptM `Exists.intro #[α, β, a, b]
       assignExprMVar mvar exp
       replaceMainGoal [b.mvarId!]
       return ()
       | none => 
-        throwTacticEx `use mvar "use only works for Exists and Sigma types"
+        throwTacticEx `naiveUse mvar "naiveUse only works for Exists and Sigma types"
   | _ => throwIllFormedSyntax
 
 def Tuple : Nat → Type 
@@ -75,12 +71,13 @@ def Tuple : Nat → Type
  | Nat.succ n => Nat × (Tuple n)
 
 example: Σ n: Nat, Tuple n := by
-        use 2
+        naiveUse 2
         exact (2, 3, ())
 
 example : ∃ n: Nat, 3 ≤ n := by
-        use 3
-        apply Nat.le_refl
+        naiveUse 3
+        constructor
+
 
 syntax (name := sigmaHead) "sigmaHead!" term : term
 @[termElab sigmaHead] def sigmaHeadImpl : TermElab := fun stx expectedType =>
