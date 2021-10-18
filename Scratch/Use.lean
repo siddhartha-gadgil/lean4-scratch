@@ -24,34 +24,26 @@ def sigmaTypeExpr? (eType: Expr) : TermElabM (Option (Expr × Expr)) :=
         logInfo m!"did not unify"
         return none
 
-syntax (name := sigmaHead) "sigmaHead!" term : term
-@[termElab sigmaHead] def sigmaHeadImpl : TermElab := fun stx expectedType =>
-  match stx with
-  | `(sigmaHead! $t) => 
-    do
-      let eType ← elabType t
-      let ht ← sigmaTypeExpr? eType
-      match ht with
-      | some (h, t) => return t
-      | none => return mkConst `Nat.zero       
-  | _ => throwIllFormedSyntax
-
-def Tuple : Nat → Type 
- | Nat.zero => Unit
- | Nat.succ n => Nat × (Tuple n)
-
-example : Tuple 2 := (2, 3, ())
-
-def Ntuple : Type := Σ n: Nat, Tuple n
-
-set_option pp.all true
-
-#check Ntuple
-
-def chkSgma := sigmaHead! (Σ n: Nat, Tuple n)
-
-#check chkSgma
-#check @Sigma.mk
+def existsTypeExpr? (eType: Expr) : TermElabM (Option (Expr × Expr)) :=
+  do 
+    let eType ← whnf eType
+    let u ← mkFreshLevelMVar
+    let v := levelZero
+    let α ← mkFreshExprMVar (mkSort u)
+    let type ← mkArrow α (mkSort v)
+    let β  ← mkFreshExprMVar type
+    let m := mkAppN (Lean.mkConst ``Exists [u]) #[α, β]
+    logInfo m!"m: {m}"
+    logInfo m!"eType : {eType}"
+    if ← isDefEq m eType
+      then
+        logInfo m!"unified"  
+        logInfo m!"α : {← whnf α}"
+        logInfo m!"β : {← whnf β}"
+        return some (← whnf α , ← whnf β)
+      else 
+        logInfo m!"did not unify"
+        return none
 
 syntax (name:= useTactic) "use" term : tactic
 @[tactic useTactic] def useTacticImpl : Tactic :=
@@ -73,12 +65,74 @@ syntax (name:= useTactic) "use" term : tactic
       assignExprMVar mvar exp
       replaceMainGoal [b.mvarId!]
       return ()
-    | none => throwTacticEx `use mvar "use only works for Sigma types"
+    | none => 
+      let etOpt ← existsTypeExpr? eType
+      match etOpt with
+      | some (α , β) =>
+      let a ← Tactic.elabTerm t α  
+      let bType ← whnf  (mkApp β a)
+      logInfo m!"bType : {bType}"
+      let b ← mkFreshExprMVar bType
+      logInfo m!"β : {β}"
+      let exp ←  mkAppOptM `Exists.intro #[α, β, a, b]
+      assignExprMVar mvar exp
+      replaceMainGoal [b.mvarId!]
+      return ()
+      | none => 
+        throwTacticEx `use mvar "use only works for Exists and Sigma types"
   | _ => throwIllFormedSyntax
+
+def Tuple : Nat → Type 
+ | Nat.zero => Unit
+ | Nat.succ n => Nat × (Tuple n)
 
 example: Σ n: Nat, Tuple n := by
         use 2
         exact (2, 3, ())
+
+example : ∃ n: Nat, 3 ≤ n := by
+        use 3
+        apply Nat.le_refl
+
+syntax (name := sigmaHead) "sigmaHead!" term : term
+@[termElab sigmaHead] def sigmaHeadImpl : TermElab := fun stx expectedType =>
+  match stx with
+  | `(sigmaHead! $t) => 
+    do
+      let eType ← elabType t
+      let ht ← sigmaTypeExpr? eType
+      match ht with
+      | some (h, t) => return t
+      | none => return mkConst `Nat.zero       
+  | _ => throwIllFormedSyntax
+
+
+example : Tuple 2 := (2, 3, ())
+
+def Ntuple : Type := Σ n: Nat, Tuple n
+
+set_option pp.all true
+
+#check Ntuple
+
+def chkSgma := sigmaHead! (Σ n: Nat, Tuple n)
+
+#check chkSgma
+#check @Sigma.mk
+
+syntax (name := existsHead) "existsHead!" term : term
+@[termElab existsHead] def existsHeadImpl : TermElab := fun stx expectedType =>
+  match stx with
+  | `(existsHead! $t) => 
+    do
+      let eType ← elabType t
+      let ht ← existsTypeExpr? eType
+      match ht with
+      | some (h, t) => return t
+      | none => return mkConst `Nat.zero       
+  | _ => throwIllFormedSyntax
+
+def chkExists := existsHead! (∃ n: Nat, n = n)
 
 -- reference example
 def checkProdMeta : TermElabM Expr :=
