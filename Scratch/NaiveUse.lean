@@ -118,24 +118,3 @@ syntax (name := existsHead) "existsHead!" term : term
   | _ => throwIllFormedSyntax
 
 def chkExists := existsHead! (∃ n: Nat, n = n)
-
--- reference example
-def checkProdMeta : TermElabM Expr :=
-  do
-    let env ← getEnv
-    let ee ← Term.mkConst `three3
-    let u ← mkFreshLevelMVar
-    let v ← mkFreshLevelMVar
-    let α ← mkFreshExprMVar (mkSort u)
-    let β  ← mkFreshExprMVar (mkSort v)
-    let a ← mkFreshExprMVar α 
-    let b ← mkFreshExprMVar β 
-    let f := mkAppN (Lean.mkConst ``PProd.mk [u, v]) #[α, β, a, b]
-    logInfo f
-    if ← isDefEq f ee
-      then
-        logInfo m!"unified"  
-        return b
-      else 
-        logInfo m!"did not unify"
-        return a

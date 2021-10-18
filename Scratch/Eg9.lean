@@ -78,3 +78,11 @@ def helloFile : IO Unit :=
 #eval helloFile
 
 #eval IO.FS.readFile myFile
+
+def size2 : List Nat → Bool
+ | [a, b] => true
+ | _ => false
+
+#check size2
+
+#eval size2 [2, 3, 4]

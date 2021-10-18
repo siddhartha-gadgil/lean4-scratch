@@ -7,6 +7,8 @@ open Lean.Elab.Term
 open Lean
 open ToExpr
 
+-- Attempt to put together lists of terms. Using products is better.
+
 universe u
 
 inductive TermSeq where
