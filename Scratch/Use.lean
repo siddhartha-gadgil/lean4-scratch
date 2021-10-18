@@ -3,7 +3,7 @@ import Lean.Elab
 open Lean Meta Elab Tactic Core 
 open Lean.Elab.Term
 
-def sigmaTypeExpr? (eType: Expr) : TermElabM (Option (Expr × Expr)) :=
+def sigmaTypeExpr? (eType: Expr) : MetaM (Option (Expr × Expr)) :=
   do 
     let eType ← whnf eType
     let u ← mkFreshLevelMVar
@@ -12,19 +12,13 @@ def sigmaTypeExpr? (eType: Expr) : TermElabM (Option (Expr × Expr)) :=
     let type ← mkArrow α (mkSort (mkLevelSucc v))
     let β  ← mkFreshExprMVar type
     let m := mkAppN (Lean.mkConst ``Sigma [u, v]) #[α, β]
-    logInfo m!"m: {m}"
-    logInfo m!"eType : {eType}"
     if ← isDefEq m eType
       then
-        logInfo m!"unified"  
-        logInfo m!"α : {← whnf α}"
-        logInfo m!"β : {← whnf β}"
         return some (← whnf α , ← whnf β)
       else 
-        logInfo m!"did not unify"
         return none
 
-def existsTypeExpr? (eType: Expr) : TermElabM (Option (Expr × Expr)) :=
+def existsTypeExpr? (eType: Expr) : MetaM (Option (Expr × Expr)) :=
   do 
     let eType ← whnf eType
     let u ← mkFreshLevelMVar
@@ -33,16 +27,10 @@ def existsTypeExpr? (eType: Expr) : TermElabM (Option (Expr × Expr)) :=
     let type ← mkArrow α (mkSort v)
     let β  ← mkFreshExprMVar type
     let m := mkAppN (Lean.mkConst ``Exists [u]) #[α, β]
-    logInfo m!"m: {m}"
-    logInfo m!"eType : {eType}"
     if ← isDefEq m eType
       then
-        logInfo m!"unified"  
-        logInfo m!"α : {← whnf α}"
-        logInfo m!"β : {← whnf β}"
         return some (← whnf α , ← whnf β)
       else 
-        logInfo m!"did not unify"
         return none
 
 syntax (name:= useTactic) "use" term : tactic
