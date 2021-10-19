@@ -45,55 +45,37 @@ syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
   fun stx  =>
   match stx with
   | `(tactic|introsRwFind) => 
-    withMainContext do
-      let mvar ← getMainGoal
-      let ⟨introVars, codmvar⟩ ← Meta.intros mvar
-      withMVarContext codmvar do
-        let introFreeVars := introVars.toList.map (fun x => mkFVar x)
-        let target ←  getMVarType codmvar
-        logInfo m!"intros : {← types introFreeVars}"
-        let oneStep ← iterAppRWM 1 codmvar introFreeVars 
-        logInfo m!"generated : {← types oneStep}"
-        let found ← typInList? target oneStep
-        match found with
-        | some x => 
-          do
-            assignExprMVar codmvar x
-            replaceMainGoal []
-            return ()
-        | none => 
-          replaceMainGoal [codmvar]
-          let value ← TermSeq.pack oneStep
-          let type ← inferType value
-          let name := `genpack
-          liftMetaTactic $  addToContextM name type value 
-          return ()
+    introsRWAux 1
   | `(tactic|introsRwFind $t) => 
     withMainContext do
       let n : Nat <- t.isNatLit?.getD 0
-      let mvar ← getMainGoal
-      let ⟨introVars, codmvar⟩ ← Meta.intros mvar
-      withMVarContext codmvar do
-        let introFreeVars := introVars.toList.map (fun x => mkFVar x)
-        let target ←  getMVarType codmvar
-        logInfo m!"intros : {← types introFreeVars}"
-        let oneStep ← iterAppRWM n codmvar introFreeVars 
-        logInfo m!"generated : {← types oneStep}"
-        let found ← typInList? target oneStep
-        match found with
-        | some x => 
-          do
-            assignExprMVar codmvar x
-            replaceMainGoal []
-            return ()
-        | none => 
-          replaceMainGoal [codmvar]
-          let value ← TermSeq.pack oneStep
-          let type ← inferType value
-          let name := `genpack
-          liftMetaTactic $  addToContextM name type value 
-          return ()
+      introsRWAux n
   | _ => Elab.throwIllFormedSyntax
+      where introsRWAux (n: Nat) : TacticM Unit :=
+        withMainContext do
+        let mvar ← getMainGoal
+        let ⟨introVars, codmvar⟩ ← Meta.intros mvar
+        withMVarContext codmvar do
+          let introFreeVars := introVars.toList.map (fun x => mkFVar x)
+          let target ←  getMVarType codmvar
+          logInfo m!"intros : {← types introFreeVars}"
+          let oneStep ← iterAppRWM n codmvar introFreeVars 
+          logInfo m!"generated : {← types oneStep}"
+          let found ← typInList? target oneStep
+          match found with
+          | some x => 
+            do
+              assignExprMVar codmvar x
+              replaceMainGoal []
+              return ()
+          | none => 
+            replaceMainGoal [codmvar]
+            let value ← TermSeq.pack oneStep
+            let type ← inferType value
+            let name := `genpack
+            liftMetaTactic $  addToContextM name type value 
+            return ()
+
 
 def modusPonens {α β : Type} : α → (α → β) → β := by
       introsRwFind
