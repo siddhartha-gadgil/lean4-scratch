@@ -41,10 +41,10 @@ def generate (mvar: MVarId): List Expr → TermElabM (List Expr) :=
     logInfo m!"initial types {← types l}"
     let initTypes ← l.filterM (fun x => liftMetaM (isType x))
     logInfo m!"initial terms that are types : {initTypes}"
-    let gen2 ← iterAppRWM 2 mvar l
+    let gen2 ← iterAppRWM 3 mvar l
     -- logInfo m!"rw-app 2 list {gen2}"
     logInfo m!"rw-app 2 types {(← types gen2).eraseDups}"
-    let gen3 ← isleSum initTypes (iterAppRWM 1 mvar) l
+    let gen3 ← isleSum initTypes (iterAppRWM 2 mvar) l
     logInfo m!"from island : {gen3}"
     return gen2 ++ gen3
 
@@ -63,5 +63,5 @@ syntax (name:= generateEg) "generate_from" term : tactic
     | _ => throwIllFormedSyntax
 
 example (n m p: Nat)(eq1 : n = m)(eq2 : m = p)(P : Nat → Type)
-      (f : Nat → Bool) : Unit := by 
-      generate_from eq1 ::: eq2 ::: P ::: 3 ::: n ::: f ::: Nat ::: ()
+      (f : Nat → Bool)(g: Bool → Nat) : Unit := by 
+      generate_from eq1 ::: eq2 ::: g ::: P ::: 3 ::: n ::: f ::: Nat ::: ()
