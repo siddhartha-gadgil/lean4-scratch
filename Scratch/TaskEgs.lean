@@ -70,3 +70,7 @@ def showFibs (place: Syntax) (xs: List Nat) : TermElabM Expr :=
 
 def fib20  := fib!
 #eval fib20
+
+def Task.zip {α β : Type} (t1 : Task α) (t2 : Task β) : Task (α × β) :=
+  t1.bind fun a => t2.map fun b => (a, b)
+  -- Task.spawn (fun _ => (t1.get, t2.get)) (the automcomplete)

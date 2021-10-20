@@ -188,14 +188,14 @@ def lamImpl (e: Expr) (mkExplicit : Bool) : TermElabM Expr := do
   return e
 
 
-inductive Singleton (α : Type u): α →  Type u where
-  | mk :  (a : α) → Singleton α  a
+inductive Θ {α : Type u}: α →  Type u where
+  | mk :  (a : α) → Θ  a
   
-def Singleton.value {α : Type u}{a: α} : Singleton α  a → α 
-  | Singleton.mk a => a
+def Θ.value {α : Type u}{a: α} : Θ a → α 
+  | Θ.mk a => a
 
-theorem Singleton.value.eq {α : Type u}{a: α} : 
-    ∀ (s : Singleton α  a), Singleton.value s = a := 
+theorem Θ.value.eq {α : Type u}{a: α} : 
+    ∀ (s : Θ a), Θ.value s = a := 
             by intro s; cases s; rfl 
 
 initialize xxx : IO.Ref (Nat) ← IO.mkRef 0
@@ -284,7 +284,7 @@ def addSingletonsToContextM (values : List Expr) :
           let htype ← inferType h
           let exprOpt : Option Expr ← 
             try
-              let expr ←  mkAppM `Singleton.mk #[h]
+              let expr ←  mkAppM `Θ.mk #[h]
               some expr
             catch _ => none
           match exprOpt with
@@ -322,7 +322,7 @@ syntax (name:= exppieces) "exppieces" : tactic
         (addSingletonsToContextM  (lamImplPieces ++ lamPieces) mvar).run' 
       return ()
 
-set_option pp.all true
+-- set_option pp.all true
 
 def transitPf {α : Type}:{a b c : α} → 
           a = b → b = c → a = c := by
@@ -331,6 +331,6 @@ def transitPf {α : Type}:{a b c : α} →
           let p := pieceB.value
           let pg := pieceG.value
           have h1 : p  = @Eq α a  := by 
-              apply Singleton.value.eq
+              apply Θ.value.eq
           rw [eq2] at eq1
           exact eq1
