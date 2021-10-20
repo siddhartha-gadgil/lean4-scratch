@@ -16,6 +16,14 @@ def rwPushEq  (mvarId : MVarId) (e : Expr) (heq : Expr)
     let pushed ← mkAppM `Eq.mp #[pf, e]
     return (pushed, rwr.mvarIds.length)
 
+def eqCongrOpt (f: Expr)(eq : Expr) : MetaM (Option Expr) :=
+  do
+    try
+      let res ← mkAppM ``congrArg #[f, eq]
+      return some res
+    catch e => 
+      return none 
+
 def rwActOptM (mvarId : MVarId) (e : Expr) (heq : Expr) 
       (symm : Bool := false) : MetaM ( Option Expr) :=
       do
@@ -31,7 +39,9 @@ def rwListArgs (mvarId : MVarId)(symm: Bool) : Expr → List Expr → MetaM (Lis
     | [] => return []
     | x :: ys => 
       do
-        let head ← rwActOptM mvarId f x symm
+        let headRW ← rwActOptM mvarId f x symm
+        let headCong ← eqCongrOpt f x
+        let head := headRW.orElse (fun _ => headCong)
         let tail ← rwListArgs mvarId symm f ys
         match head with
         | some expr => return expr :: tail
