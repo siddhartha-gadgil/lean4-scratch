@@ -65,7 +65,8 @@ def iterAppRWM(n: Nat)(mvarId : MVarId) : List Expr → MetaM (List Expr) :=
   | 0 => fun l => return l
   | m + 1 => fun l => do
        let prev ← iterAppRWM m mvarId  l
-       let rwStep ← rwPairs mvarId false prev prev
-       let rwFlipStep ←  rwPairs mvarId true prev prev
+       let eqs ←  prev.filterM (fun e => do (← inferType e).isEq)
+       let rwStep ← rwPairs mvarId false prev eqs
+       let rwFlipStep ←  rwPairs mvarId true prev eqs
        let appStep ← applyPairsMeta prev
        return (rwStep.append (rwFlipStep.append appStep))

@@ -44,6 +44,7 @@ def generate (mvar: MVarId): List Expr → TermElabM (List Expr) :=
     let gen2 ← iterAppRWM 3 mvar l
     -- logInfo m!"rw-app 2 list {gen2}"
     logInfo m!"rw-app 2 types {(← types gen2).eraseDups}"
+    logInfo m!"rw-app 2 equalities {(← types gen2).eraseDups.filter (Expr.isEq)}"
     let gen3 ← isleSum initTypes (iterAppRWM 2 mvar) l
     logInfo m!"from island : {gen3}"
     return gen2 ++ gen3
