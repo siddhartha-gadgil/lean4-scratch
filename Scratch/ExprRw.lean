@@ -127,13 +127,10 @@ def iterAppRWM(n: Nat)(mvarId : MVarId) : List Expr → MetaM (List Expr) :=
        let appStep ← applyPairsMeta prev
        return (rwStep.append (rwFlipStep.append appStep))
 
-def List.inTermElab {α : Type}(l : List (TermElabM α )) : TermElabM (List α) :=
-  match l with
-  | [] => return []
-  | x :: xs => do
-    let x' ← x
-    let xs' ← inTermElab xs
-    return (x' :: xs')
+def List.inTermElab {α : Type}(l : List (TermElabM α)) : TermElabM (List α) :=
+  l.foldl (fun ysM xM =>
+            do 
+              return (← xM) :: (← ysM)) (return [])
 
 def rwAppCongStep(mvarId : MVarId) : List Expr → Task (TermElabM (List Expr)):=
     fun l =>
