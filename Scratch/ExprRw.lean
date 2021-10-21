@@ -132,7 +132,23 @@ def List.inTermElab {α : Type}(l : List (TermElabM α)) : TermElabM (List α) :
             do 
               return (← xM) :: (← ysM)) (return [])
 
-def rwAppCongStep(mvarId : MVarId) : List Expr → Task (TermElabM (List Expr)):=
+def Array.inTermElab {α : Type}(l : Array (TermElabM α)) : TermElabM (Array α) :=
+  l.foldl (fun ysM xM =>
+            do 
+              return (← ysM).push (← xM)) (return #[])
+
+
+#check @Array.foldl
+
+def Array.join {α : Type}(a : Array (Array α)) : Array α := do
+  let mut res : Array α  := #[]
+  for x in a do
+    for y in x do
+      res := res.push y
+  return res
+  
+
+def rwAppCongStep(mvarId : MVarId) : Array Expr → Task (TermElabM (Array Expr)):=
     fun l =>
     let ltml :=
       l.map $ fun arg => 
@@ -149,12 +165,12 @@ def rwAppCongStep(mvarId : MVarId) : List Expr → Task (TermElabM (List Expr)):
         else 
           let apps ← l.filterMapM (fun f => applyOptM f arg)
           return apps
-    let tlml := Task.sequence ltml 
+    let tlml := Task.array ltml 
     let tml := tlml.map $ fun lst => 
-      (List.inTermElab lst).map (fun ll => (List.join ll) ++ l)
+      (Array.inTermElab lst).map (fun ll => (Array.join ll) ++ l)
     tml
 
-def iterAppRWTask(n: Nat)(mvarId : MVarId) : List Expr → TermElabM (List Expr) :=
+def iterAppRWTask(n: Nat)(mvarId : MVarId) : Array Expr → TermElabM (Array Expr) :=
    match n with
   | 0 => fun l => return l
   | m + 1 => fun l => do
@@ -164,4 +180,4 @@ def iterAppRWTask(n: Nat)(mvarId : MVarId) : List Expr → TermElabM (List Expr)
       return rwStep
 
 def iterAppRWMTask(n: Nat)(mvarId : MVarId) : List Expr → MetaM (List Expr) :=
-  fun l => (iterAppRWTask n mvarId l).run'
+  fun l => ((iterAppRWTask n mvarId l.toArray).run').map (Array.toList)

@@ -1,3 +1,4 @@
+import Scratch.IntrosRwFind
 universe u
 
 variable {M: Type u}[Mul M]
@@ -18,3 +19,8 @@ theorem CzSlOly : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) =
               rw [lem3] at lem6
               assumption 
               
+example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
+            (m n : M) →  (m * n) * n = m := by
+            introsRwFind 2
+
+

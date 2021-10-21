@@ -33,6 +33,9 @@ def Task.join {α β : Type} (t1 : Task α) (t2 : Task β) : Task (α × β) :=
 def Task.sequence {α : Type} (ts : List (Task α)) : Task (List α) :=
   ts.foldl (fun t acc => t.bind (fun ys => acc.map (fun x => x :: ys))) (Task.pure [])
 
+def Task.array {α : Type} (ts : Array (Task α)) : Task (Array α) :=
+  ts.foldl (fun t acc => t.bind (fun ys => acc.map (fun x => ys.push x))) (Task.pure #[])
+
 def listAppArgsTask : Expr → List Expr → Task (TermElabM (List Expr)) :=
   fun f args =>
     match args with
