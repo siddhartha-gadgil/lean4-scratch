@@ -157,11 +157,14 @@ def rwAppCongStep(mvarId : MVarId) : List Expr → Task (TermElabM (List Expr)):
       (List.inTermElab lst).map (fun ll => (List.join ll) ++ l)
     tml
 
-def iterAppRWMTask(n: Nat)(mvarId : MVarId) : List Expr → TermElabM (List Expr) :=
+def iterAppRWTask(n: Nat)(mvarId : MVarId) : List Expr → TermElabM (List Expr) :=
    match n with
   | 0 => fun l => return l
   | m + 1 => fun l => do
-      let prev ←  iterAppRWMTask m mvarId  l
+      let prev ←  iterAppRWTask m mvarId  l
       let rwStepTask := rwAppCongStep mvarId prev
       let rwStep ← rwStepTask.get
       return rwStep
+
+def iterAppRWMTask(n: Nat)(mvarId : MVarId) : List Expr → MetaM (List Expr) :=
+  fun l => (iterAppRWTask n mvarId l).run'

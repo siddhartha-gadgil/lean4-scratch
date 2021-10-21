@@ -59,7 +59,7 @@ syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
           let introFreeVars := introVars.toList.map (fun x => mkFVar x)
           let target ←  getMVarType codmvar
           logInfo m!"intros : {← types introFreeVars}"
-          let oneStep ← iterAppRWM n codmvar introFreeVars 
+          let oneStep ← iterAppRWMTask n codmvar introFreeVars 
           logInfo m!"generated : {← types oneStep}"
           let found ← typInList? target oneStep
           match found with
