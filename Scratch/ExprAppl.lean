@@ -30,6 +30,9 @@ def listAppArgs : Expr → List Expr → TermElabM (List Expr) :=
 def Task.join {α β : Type} (t1 : Task α) (t2 : Task β) : Task (α × β) :=
   t1.bind fun a => t2.map fun b => (a, b)
 
+def Task.sequence {α : Type} (ts : List (Task α)) : Task (List α) :=
+  ts.foldr (fun t acc => t.bind (fun x => acc.map (fun ys => x :: ys))) (Task.pure [])
+
 def listAppArgsTask : Expr → List Expr → Task (TermElabM (List Expr)) :=
   fun f args =>
     match args with

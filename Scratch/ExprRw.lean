@@ -127,34 +127,41 @@ def iterAppRWM(n: Nat)(mvarId : MVarId) : List Expr → MetaM (List Expr) :=
        let appStep ← applyPairsMeta prev
        return (rwStep.append (rwFlipStep.append appStep))
 
-def iterAppRWMTask(n: Nat)(mvarId : MVarId) : List Expr → Task (MetaM (List Expr)) :=
-   match n with
-  | 0 => fun l => Task.pure $ return l
-  | m + 1 => fun l => do
-      let prevTask := iterAppRWMTask m mvarId  l
-      prevTask.bind $ fun prevM =>
-        let step : MetaM (Task (MetaM (List Expr))) := prevM.bind $ 
-          fun prev => 
-            do 
-            let eqs ←  prev.filterM (fun e => do  (← inferType e).isEq)
-            let rwStepTask := rwPairsTask mvarId false prev eqs
-            let rwFlipStepTask := rwPairsTask mvarId true prev eqs
-            let appStepTask := applyPairsMetaTask prev
-            let triple := rwStepTask.join (rwFlipStepTask.join appStepTask)
-            let combine : Task (MetaM (List Expr)) := triple.map $ fun (rwStep, rwFlipStep, appStep) =>
-              do
-                let step := (← rwStep) ++ (← rwFlipStep) ++ (← appStep)
-                return step
-            return combine
-        Task.pure (return [])
-  where
-    metaMerge : MetaM (List Expr) → MetaM (List Expr) → MetaM (List Expr) := fun m1 m2 =>
+def List.inTermElab {α : Type}(l : List (TermElabM α )) : TermElabM (List α) :=
+  match l with
+  | [] => return []
+  | x :: xs => do
+    let x' ← x
+    let xs' ← inTermElab xs
+    return (x' :: xs')
+
+def rwAppCongStep(mvarId : MVarId) : List Expr → Task (TermElabM (List Expr)):=
+    fun l =>
+    let ltml :=
+      l.map $ fun arg => 
+      Task.spawn $ fun _ =>
       do
-        let m1 := (← m1)
-        let m2 := (← m2)
-        return m1 ++ m2
-    taskMetaMerge : Task (MetaM (List Expr)) → Task (MetaM (List Expr)) → 
-      Task (MetaM (List Expr)) := fun m1 m2 =>
-        (m1.join m2).map $ fun (m1, m2) => metaMerge m1 m2
-    stepTask : List Expr → Task (MetaM (List Expr)) :=
-      sorry
+        let type ← inferType arg
+        if type.isEq
+        then 
+          let rws ← l.filterMapM (fun f => rwActOptM mvarId f arg)
+          let rwsFlip ← l.filterMapM (fun f => rwActOptM mvarId f arg true)
+          let congs ← l.filterMapM (fun f => eqCongrOpt f arg)
+          let apps ← l.filterMapM (fun f => applyOptM f arg)
+          return (rws.append (rwsFlip.append (congs.append (apps))))
+        else 
+          let apps ← l.filterMapM (fun f => applyOptM f arg)
+          return apps
+    let tlml := Task.sequence ltml 
+    let tml := tlml.map $ fun lst => 
+      (List.inTermElab lst).map (fun ll => (List.join ll) ++ l)
+    tml
+
+def iterAppRWMTask(n: Nat)(mvarId : MVarId) : List Expr → TermElabM (List Expr) :=
+   match n with
+  | 0 => fun l => return l
+  | m + 1 => fun l => do
+      let prev ←  iterAppRWMTask m mvarId  l
+      let rwStepTask := rwAppCongStep mvarId prev
+      let rwStep ← rwStepTask.get
+      return rwStep
