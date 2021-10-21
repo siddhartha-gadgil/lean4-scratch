@@ -140,11 +140,11 @@ def Array.inTermElab {α : Type}(l : Array (TermElabM α)) : TermElabM (Array α
 
 #check @Array.foldl
 
-def Array.join {α : Type}(a : Array (Array α)) : Array α := do
+def Array.join {α : Type}[BEq α](a : Array (Array α)) : Array α := do
   let mut res : Array α  := #[]
   for x in a do
     for y in x do
-      res := res.push y
+      res := if res.contains y then res else res.push y
   return res
   
 
