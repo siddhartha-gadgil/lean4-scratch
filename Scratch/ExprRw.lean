@@ -148,7 +148,7 @@ def Array.join {α : Type}[BEq α](a : Array (Array α)) : Array α := do
   return res
   
 
-def rwAppCongStep(mvarId : MVarId) : Array Expr → Task (TermElabM (Array Expr)):=
+def rwAppCongStepTask(mvarId : MVarId) : Array Expr → Task (TermElabM (Array Expr)):=
     fun l =>
     let ltml :=
       l.map $ fun arg => 
@@ -170,14 +170,45 @@ def rwAppCongStep(mvarId : MVarId) : Array Expr → Task (TermElabM (Array Expr)
       (Array.inTermElab lst).map (fun ll => (Array.join ll) ++ l)
     tml
 
+def rwAppCongStep(mvarId : MVarId) : Array Expr → TermElabM (Array Expr):=
+  fun l =>
+    let fn : Array Expr → Expr → TermElabM (Array Expr) :=     
+      fun l arg =>
+        do
+          let type ← inferType arg
+          if type.isEq
+          then 
+            let rws ← l.filterMapM (fun f => rwActOptM mvarId f arg)
+            let rwsFlip ← l.filterMapM (fun f => rwActOptM mvarId f arg true)
+            let congs ← l.filterMapM (fun f => eqCongrOpt f arg)
+            let apps ← l.filterMapM (fun f => applyOptM f arg)
+            return (rws.append (rwsFlip.append (congs.append (apps)))) ++ l
+          else 
+            let apps ← l.filterMapM (fun f => applyOptM f arg)
+            return apps ++ l
+    let res := Array.foldlM (fn) (l) l
+    res
+
+
 def iterAppRWTask(n: Nat)(mvarId : MVarId) : Array Expr → TermElabM (Array Expr) :=
    match n with
   | 0 => fun l => return l
   | m + 1 => fun l => do
       let prev ←  iterAppRWTask m mvarId  l
-      let rwStepTask := rwAppCongStep mvarId prev
+      let rwStepTask := rwAppCongStepTask mvarId prev
       let rwStep ← rwStepTask.get
       return rwStep
 
 def iterAppRWMTask(n: Nat)(mvarId : MVarId) : List Expr → MetaM (List Expr) :=
   fun l => ((iterAppRWTask n mvarId l.toArray).run').map (Array.toList)
+
+def iterAppRWDirect(n: Nat)(mvarId : MVarId) : Array Expr → TermElabM (Array Expr) :=
+   match n with
+  | 0 => fun l => return l
+  | m + 1 => fun l => do
+      let prev ←  iterAppRWDirect m mvarId  l
+      let rwStep ←  rwAppCongStep mvarId prev
+      return rwStep
+
+def iterAppRWMDirect(n: Nat)(mvarId : MVarId) : List Expr → MetaM (List Expr) :=
+  fun l => ((iterAppRWDirect n mvarId l.toArray).run').map (Array.toList)

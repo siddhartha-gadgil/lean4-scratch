@@ -76,6 +76,7 @@ syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
             liftMetaTactic $  addToContextM name type value 
             return ()
 
+
 def modusPonens {α β : Type} : α → (α → β) → β := by
       introsRwFind
 
