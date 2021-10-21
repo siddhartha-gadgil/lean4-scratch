@@ -189,6 +189,18 @@ def rwAppCongStep(mvarId : MVarId) : Array Expr → TermElabM (Array Expr):=
     let res := Array.foldlM (fn) (l) l
     res
 
+def appStepTask : Array Expr → Task (TermElabM (Array Expr)):=
+    fun l =>
+    let ltml :=
+      l.map $ fun arg => 
+      Task.spawn $ fun _ =>
+      do
+        let apps ← l.filterMapM (fun f => applyOptM f arg)
+        return apps
+    let tlml := Task.array ltml 
+    let tml := tlml.map $ fun lst => 
+      (Array.inTermElab lst).map (fun ll => (Array.join ll) ++ l)
+    tml
 
 def iterAppRWTask(n: Nat)(mvarId : MVarId) : Array Expr → TermElabM (Array Expr) :=
    match n with
@@ -199,8 +211,20 @@ def iterAppRWTask(n: Nat)(mvarId : MVarId) : Array Expr → TermElabM (Array Exp
       let rwStep ← rwStepTask.get
       return rwStep
 
-def iterAppRWMTask(n: Nat)(mvarId : MVarId) : List Expr → MetaM (List Expr) :=
-  fun l => ((iterAppRWTask n mvarId l.toArray).run').map (Array.toList)
+def iterAppRWMTask(n: Nat)(mvarId : MVarId) : List Expr → TermElabM (List Expr) :=
+  fun l => ((iterAppRWTask n mvarId l.toArray)).map (Array.toList)
+
+def iterAppTask(n: Nat) : Array Expr → TermElabM (Array Expr) :=
+   match n with
+  | 0 => fun l => return l
+  | m + 1 => fun l => do
+      let prev ←  iterAppTask m   l
+      let stepTask := appStepTask prev
+      let step ← stepTask.get
+      return step
+
+def iterAppMTask(n: Nat) : List Expr → TermElabM (List Expr) :=
+  fun l => ((iterAppTask n  l.toArray)).map (Array.toList)
 
 def iterAppRWDirect(n: Nat)(mvarId : MVarId) : Array Expr → TermElabM (Array Expr) :=
    match n with

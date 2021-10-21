@@ -14,20 +14,20 @@ def isType : Expr → MetaM Bool :=
       let tp ← inferType exp
       return tp.isSort
 
-def isle (type: Expr)(evolve : List Expr → MetaM (List Expr))(init : List Expr)
-       (includePi : Bool := true): MetaM (List Expr) := 
+def isle (type: Expr)(evolve : List Expr → TermElabM (List Expr))(init : List Expr)
+       (includePi : Bool := true): TermElabM (List Expr) := 
     withLocalDecl Name.anonymous BinderInfo.default (mkConst ``Nat)  $ fun x => 
         do
           let l := x :: init
           let evl ← evolve l
-          let evt ← evl.filterM (isType)
+          let evt ← evl.filterM (fun x => liftMetaM (isType x))
           let exported ← evl.mapM (fun e => mkLambdaFVars #[x] e)
           let exportedPi ← evt.mapM (fun e => mkForallFVars #[x] e)
           let res := if includePi then exported ++ exportedPi else exported
           return res
 
-def isleSum (types: List Expr)(evolve : List Expr → MetaM (List Expr))(init : List Expr) : 
-        MetaM (List Expr) := 
+def isleSum (types: List Expr)(evolve : List Expr → TermElabM (List Expr))(init : List Expr) : 
+        TermElabM (List Expr) := 
         match types with
         | [] => return []
         | h :: t => 
@@ -42,13 +42,14 @@ def generate (mvar: MVarId): List Expr → TermElabM (List Expr) :=
     logInfo m!"initial types {← types l}"
     let initTypes ← l.filterM (fun x => liftMetaM (isType x))
     logInfo m!"initial terms that are types : {initTypes}"
-    let gen2 ← iterAppRWMTask 3 mvar l
+    -- let gen2 ← iterAppRWMTask 3 mvar l
     -- logInfo m!"rw-app 2 list {gen2}"
-    logInfo m!"rw-app 2 types {(← types gen2).eraseDups}"
-    logInfo m!"rw-app 2 equalities {(← types gen2).eraseDups.filter (Expr.isEq)}"
-    let gen3 ← isleSum initTypes (iterAppRWMTask 2 mvar) l
+    -- logInfo m!"rw-app 2 types {(← types gen2).eraseDups}"
+    -- logInfo m!"rw-app 2 equalities {(← types gen2).eraseDups.filter (Expr.isEq)}"
+    -- let mvar ← mkFreshMVarId
+    let gen3 ← isleSum initTypes (iterAppMTask 2) l
     logInfo m!"from island : {gen3}"
-    return gen2 ++ gen3
+    return gen3
 
 syntax (name:= generateEg) "generate_from" term : tactic
 @[tactic generateEg] def genImpl : Tactic := 
