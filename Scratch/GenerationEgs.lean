@@ -36,7 +36,18 @@ def isleSum (types: List Expr)(evolve : List Expr → TermElabM (List Expr))(ini
             let head ← isle h evolve init
             return head ++ tail        
 
-def generate (mvar: MVarId): List Expr → TermElabM (List Expr) :=
+set_option pp.all true
+
+def generate1 (mvar: MVarId): List Expr → TermElabM (List Expr) :=
+  fun l => do
+    logInfo m!"initial list {l}"
+    logInfo m!"initial types {← types l}"
+    let initTypes ← l.filterM (fun x => liftMetaM (isType x))
+    logInfo m!"initial terms that are types : {initTypes}"
+    let gen2 ← iterAppRWMTask 3 mvar l
+    return l
+
+def generate2 : List Expr → TermElabM (List Expr) :=
   fun l => do
     logInfo m!"initial list {l}"
     logInfo m!"initial types {← types l}"
@@ -49,7 +60,17 @@ def generate (mvar: MVarId): List Expr → TermElabM (List Expr) :=
     -- let mvar ← mkFreshMVarId
     let gen3 ← isleSum initTypes (iterAppMTask 2) l
     logInfo m!"from island : {gen3}"
-    return gen3
+    return l
+
+def generate (mvar: MVarId): List Expr → TermElabM (List Expr) :=
+  fun l => 
+    do
+    -- logWarning m!"initial list first time: {l}"
+    -- let l ← generate1 mvar l
+    -- logWarning m!"initial list after rewrite: {l}"
+    let l2 ← generate2  l
+    let l1 ← generate1 mvar l
+    return l
 
 syntax (name:= generateEg) "generate_from" term : tactic
 @[tactic generateEg] def genImpl : Tactic := 
@@ -67,4 +88,4 @@ syntax (name:= generateEg) "generate_from" term : tactic
 
 example (n m p: Nat)(eq1 : n = m)(eq2 : m = p)(P : Nat → Type)
       (f : Nat → Bool)(g: Bool → Nat) : Unit := by 
-      generate_from eq1 ::: eq2 ::: g ::: P ::: 3 ::: n ::: f ::: Nat ::: ()
+      generate_from eq1 ::: eq2 ::: g ::: P ::: 3 ::: n ::: f ::: Nat ::: () 

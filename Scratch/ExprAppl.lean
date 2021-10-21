@@ -13,6 +13,10 @@ def applyOptM (f x : Expr) : TermElabM (Option Expr) :=
       let expr ← elabAppArgs f #[] #[Arg.expr x] none (explicit := false) (ellipsis := false)
       return some expr
     catch e =>
+    try
+      let expr ← mkAppM' f #[x]
+      return some expr
+      catch e =>
       return none
 
 def listAppArgs : Expr → List Expr → TermElabM (List Expr) :=
