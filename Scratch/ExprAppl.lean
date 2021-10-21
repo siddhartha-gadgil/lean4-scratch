@@ -27,6 +27,25 @@ def listAppArgs : Expr → List Expr → TermElabM (List Expr) :=
         | some expr => return expr :: tail
         | none => return tail
 
+def Task.join {α β : Type} (t1 : Task α) (t2 : Task β) : Task (α × β) :=
+  t1.bind fun a => t2.map fun b => (a, b)
+
+def listAppArgsTask : Expr → List Expr → Task (TermElabM (List Expr)) :=
+  fun f args =>
+    match args with
+    | [] => Task.pure (return [])
+    | x :: ys => 
+      do
+        let headTask := Task.spawn (fun _ => applyOptM f x)
+        let tailTask := listAppArgsTask f ys
+        headTask.bind $ fun head => 
+              tailTask.map $ fun tail =>
+                do 
+                  let h ← head
+                  match h with
+                  | some expr => return expr :: (← tail)
+                  | none => tail
+
 def applyPairs : List Expr →  List Expr  → TermElabM (List Expr)  := fun l args =>
   match l with
   | [] => return []
@@ -35,6 +54,21 @@ def applyPairs : List Expr →  List Expr  → TermElabM (List Expr)  := fun l a
       let head ← listAppArgs x args
       let tail ← applyPairs ys args
       return head ++ tail
+
+-- cumulative and removing duplicates
+def applyPairsTask : List Expr →  List Expr  → Task (TermElabM (List Expr))  := 
+  fun l args =>
+  match l with
+  | [] => Task.pure (return [])
+  | x :: ys => 
+    do
+      let headTask := listAppArgsTask x args
+      let tailTask := listAppArgsTask x ys
+      headTask.bind $ fun head => 
+            tailTask.map $ fun tail =>
+              do 
+                return ((← head) ++ (← tail) ++ l).eraseDups
+
 
 def double: Nat→ Nat := fun x => x + x
 
@@ -51,6 +85,9 @@ def applyPairsCuml :  List Expr  → TermElabM (List Expr)  :=
             
 def applyPairsMeta : List Expr → MetaM (List Expr) :=
   fun l => (applyPairsCuml l).run'
+
+def applyPairsMetaTask : List Expr → Task (MetaM (List Expr)) :=
+  fun l => (applyPairsTask l l).map (fun x => x.run')
 
 def iterApplyPairsMeta(n : Nat) : List Expr → MetaM (List Expr) :=
   match n with
