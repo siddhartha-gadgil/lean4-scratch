@@ -111,7 +111,7 @@ partial def consumeImplicits  (e eType : Expr) (hasArgs : Bool) :
   | _ => pure (e, eType)
 
 partial def lambdaImplicits  (e  : Expr) (makeExplicit : Bool) : 
-          TermElabM Expr := do
+          MetaM Expr := do
   let eType ← inferType e
   let eType ← whnfCore eType
   match eType with
@@ -175,8 +175,17 @@ def getFnsAux : Expr → List Expr → List Expr
   | Expr.app f a _, l  => getFnsAux f (f :: a :: l) 
   | e, l => e :: l
 
-def getFnsArgs : Expr → List Expr
-  | e => getFnsAux e []
+def getFnsArgs : Expr → MetaM (List Expr)
+  | Expr.app f a _ => 
+    do 
+      let ft ← inferType f
+      let expl := ft.data.binderInfo.isExplicit
+      if expl then
+      (←  getFnsArgs f) ++ (← getFnsArgs a) ++ [f, a]
+      else [f]
+  | e => try 
+         do  [← lambdaImplicits e true]
+        catch _ => []
 
 def consImpl (e: Expr) : TermElabM Expr := do
   let eType ← inferType e
@@ -303,7 +312,8 @@ syntax (name:= exppieces) "exppieces" : tactic
     do
       let e ← getMainTarget 
       let eType ← inferType e
-      let pieces ← getFnsArgs e
+      let e ← instantiateMVars e
+      let pieces ← (← getFnsArgs e).eraseDups
       logInfo m!"got {pieces}"
       let fedPieces ← pieces.mapM (fun exp => consImpl exp)
       logInfo m!"refined {fedPieces}"
@@ -334,9 +344,20 @@ def transitPf {α : Type}:{a b c : α} →
           a = b → b = c → a = c := by
           intros a b c eq1 eq2
           exppieces
-          let p := pieceB.value
+          let p := pieceA.value
           let pg := pieceG.value
           have h1 : p  = @Eq α a  := by 
               apply Θ.value.eq
           rw [eq2] at eq1
           exact eq1
+
+variable {M: Type u}[Mul M]
+
+example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
+            (m n : M) →  (m * n) * n = m := by
+            intros eq1 eq2 m n
+            exppieces
+            exact sorry
+            
+
+#check @Mul
