@@ -44,7 +44,7 @@ def generate1 (mvar: MVarId): List Expr → TermElabM (List Expr) :=
     logInfo m!"initial types {← types l}"
     let initTypes ← l.filterM (fun x => liftMetaM (isType x))
     logInfo m!"initial terms that are types : {initTypes}"
-    let gen2 ← iterAppRWMTask 3 mvar l
+    let gen2 ← iterAppRWMTask 2 mvar l
     return l
 
 def generate2 : List Expr → TermElabM (List Expr) :=
@@ -53,23 +53,15 @@ def generate2 : List Expr → TermElabM (List Expr) :=
     logInfo m!"initial types {← types l}"
     let initTypes ← l.filterM (fun x => liftMetaM (isType x))
     logInfo m!"initial terms that are types : {initTypes}"
-    -- let gen2 ← iterAppRWMTask 3 mvar l
-    -- logInfo m!"rw-app 2 list {gen2}"
-    -- logInfo m!"rw-app 2 types {(← types gen2).eraseDups}"
-    -- logInfo m!"rw-app 2 equalities {(← types gen2).eraseDups.filter (Expr.isEq)}"
-    -- let mvar ← mkFreshMVarId
-    let gen3 ← isleSum initTypes (iterAppMTask 2) l
+    let gen3 ← isleSum initTypes (iterAppMTask 3) l
     logInfo m!"from island : {gen3}"
     return l
 
 def generate (mvar: MVarId): List Expr → TermElabM (List Expr) :=
   fun l => 
     do
-    -- logWarning m!"initial list first time: {l}"
-    -- let l ← generate1 mvar l
-    -- logWarning m!"initial list after rewrite: {l}"
+    let l ← generate1 mvar l
     let l2 ← generate2  l
-    let l1 ← generate1 mvar l
     return l
 
 syntax (name:= generateEg) "generate_from" term : tactic
@@ -88,4 +80,5 @@ syntax (name:= generateEg) "generate_from" term : tactic
 
 example (n m p: Nat)(eq1 : n = m)(eq2 : m = p)(P : Nat → Type)
       (f : Nat → Bool)(g: Bool → Nat) : Unit := by 
-      generate_from eq1 ::: eq2 ::: g ::: P ::: 3 ::: n ::: f ::: Nat ::: () 
+      -- generate_from  n ::: eq1 ::: P ::: g ::: f ::: Nat ::: () 
+      generate_from eq1 ::: eq2 ::: P  ::: f ::: Nat ::: ()

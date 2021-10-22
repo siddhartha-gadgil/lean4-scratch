@@ -307,6 +307,12 @@ syntax (name:= exppieces) "exppieces" : tactic
       logInfo m!"got {pieces}"
       let fedPieces ← pieces.mapM (fun exp => consImpl exp)
       logInfo m!"refined {fedPieces}"
+      let repieces ← pieces.mapM (fun exp => do whnf (← instantiateMVars exp))
+      logInfo m!"rebuilt {repieces}"
+      let h := fedPieces.head!
+      let comp ← fedPieces.mapM (fun e => isDefEq h e)
+      logInfo m!"compare {comp}"
+      logInfo m!"post compare: {← fedPieces.mapM (fun e => whnf e)}"
       let unchanged ← pieces.mapM (fun exp =>
           do 
           let fed ← consImpl exp
@@ -322,7 +328,7 @@ syntax (name:= exppieces) "exppieces" : tactic
         (addSingletonsToContextM  (lamImplPieces ++ lamPieces) mvar).run' 
       return ()
 
--- set_option pp.all true
+set_option pp.all true
 
 def transitPf {α : Type}:{a b c : α} → 
           a = b → b = c → a = c := by
