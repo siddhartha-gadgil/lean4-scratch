@@ -59,9 +59,10 @@ syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
           let introFreeVars := introVars.toList.map (fun x => mkFVar x)
           let target ←  getMVarType codmvar
           logInfo m!"intros : {← types introFreeVars}"
-          let oneStep ← iterAppRWMTask n codmvar introFreeVars 
-          logInfo m!"generated : {← types oneStep}"
-          let found ← typInList? target oneStep
+          let oneStep ← iterAppRWTask n codmvar introFreeVars.toArray 
+          logInfo m!"generated : {← oneStep.mapM (fun e => inferType e)}"
+          let found ← oneStep.findM? (fun e => do isDefEq (← inferType e) target)
+      --     let found ← typInList? target oneStep
           match found with
           | some x => 
             do
@@ -69,11 +70,11 @@ syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
               replaceMainGoal []
               return ()
           | none => 
-            replaceMainGoal [codmvar]
-            let value ← TermSeq.pack oneStep
-            let type ← inferType value
-            let name := `genpack
-            liftMetaTactic $  addToContextM name type value 
+            -- replaceMainGoal [codmvar]
+            -- let value ← TermSeq.pack oneStep.toList
+            -- let type ← inferType value
+            -- let name := `genpack
+            -- liftMetaTactic $  addToContextM name type value 
             return ()
 
 
