@@ -70,7 +70,7 @@ syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
               replaceMainGoal []
               return ()
           | none => 
-            -- replaceMainGoal [codmvar]
+            replaceMainGoal [codmvar]
             -- let value ← TermSeq.pack oneStep.toList
             -- let type ← inferType value
             -- let name := `genpack
