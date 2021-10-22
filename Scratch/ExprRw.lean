@@ -15,7 +15,7 @@ def rewriteProof (e: Expr) (heq : Expr) (symm : Bool := false) : MetaM (Option E
     match heqType.eq? with
     | none => none
     | some (α , lhs, rhs) =>
-    let heqType := if symm then ← mkEqSymm heqType else heqType
+    let heqType := if symm then ← mkEq rhs lhs else heqType
     let hep := if symm then mkEqSymm heq else heq
     if lhs.getAppFn.isMVar then none
     else
@@ -199,8 +199,8 @@ def rwAppCongStepTask(mvarId : MVarId) : Array Expr → Task (TermElabM (Array E
         let type ← inferType arg
         if type.isEq
         then 
-          let rws ← l.filterMapM (fun f => rwActOptM mvarId f arg)
-          let rwsFlip ← l.filterMapM (fun f => rwActOptM mvarId f arg true)
+          let rws ← l.filterMapM (fun f => rwPushOpt  f arg)
+          let rwsFlip ← l.filterMapM (fun f => rwPushOpt f arg true)
           let congs ← l.filterMapM (fun f => eqCongrOpt f arg)
           let apps ← l.filterMapM (fun f => applyOptM f arg)
           return (rws.append (rwsFlip.append (congs.append (apps))))

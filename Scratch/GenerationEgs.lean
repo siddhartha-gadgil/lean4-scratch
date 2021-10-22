@@ -44,7 +44,11 @@ def generate1 (mvar: MVarId): List Expr → TermElabM (List Expr) :=
     logInfo m!"initial types {← types l}"
     let initTypes ← l.filterM (fun x => liftMetaM (isType x))
     logInfo m!"initial terms that are types : {initTypes}"
-    let gen2 ← iterAppRWMTask 2 mvar l
+    let gen2 ← iterAppRWMTask 3 mvar l
+-- logInfo m!"rw-app 2 list {gen2}"
+    logInfo m!"rw-app 2 types {(← types gen2).eraseDups}"
+    logInfo m!"rw-app 2 equalities {(← types gen2).eraseDups.filter (Expr.isEq)}"
+
     return l
 
 def generate2 : List Expr → TermElabM (List Expr) :=
