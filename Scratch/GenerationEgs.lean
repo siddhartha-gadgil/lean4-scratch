@@ -85,4 +85,4 @@ syntax (name:= generateEg) "generate_from" term : tactic
 example (n m p: Nat)(eq1 : n = m)(eq2 : m = p)(P : Nat → Type)
       (f : Nat → Bool)(g: Bool → Nat) : Unit := by 
       -- generate_from  n ::: eq1 ::: P ::: g ::: f ::: Nat ::: () 
-      generate_from eq1 ::: eq2 ::: P  ::: f ::: Nat ::: ()
+      generate_from eq1 ::: eq2 ::: P  ::: f ::: g ::: n ::: m ::: Nat ::: ()
