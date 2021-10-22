@@ -6,13 +6,55 @@ open Meta
 open Elab
 open Lean.Elab.Tactic
 
+-- copied from lean4 source code
+def rewriteProof (e: Expr) (heq : Expr) (symm : Bool := false) : MetaM (Option Expr) :=
+  do
+    let heqType ← instantiateMVars (← inferType heq)
+    let (newMVars, binderInfos, heqType) ← forallMetaTelescopeReducing heqType
+    let heq := mkAppN heq newMVars
+    match heqType.eq? with
+    | none => none
+    | some (α , lhs, rhs) =>
+    let heqType := if symm then ← mkEqSymm heqType else heqType
+    let hep := if symm then mkEqSymm heq else heq
+    if lhs.getAppFn.isMVar then none
+    else
+    let e ← instantiateMVars e
+    let eAbst ←  kabstract e lhs
+    if !eAbst.hasLooseBVars then none
+    else
+    let eNew := eAbst.instantiate1 rhs
+    let eNew ← instantiateMVars eNew
+    let eEqE ← mkEq e e
+    let eEqEAbst := mkApp eEqE.appFn! eAbst
+    let motive := Lean.mkLambda `_a BinderInfo.default α eEqEAbst
+    if !(← isTypeCorrect motive) then none
+    else            
+    let eqRefl ← mkEqRefl e
+    let eqPrf ← mkEqNDRec motive eqRefl heq
+    return some eqPrf
+
+def rwPushOpt(e : Expr) (heq : Expr) 
+      (symm : Bool := false): MetaM (Option Expr) :=
+  do
+    let t ← inferType e
+    let pfOpt ← rewriteProof t heq symm
+    match pfOpt with
+    | none => return none
+    | some pf =>
+      try
+        let pushed ← mkAppM `Eq.mp #[pf, e]
+        return some pushed
+      catch _ => 
+        return none
+
 def rwPushEq  (mvarId : MVarId) (e : Expr) (heq : Expr) 
       (symm : Bool := false): MetaM (Expr × Nat) :=
   do
     let t ← inferType e
     let rwr ← Meta.rewrite mvarId t heq symm
     let pf := rwr.eqProof
-    let tt := rwr.eNew
+    -- let tt := rwr.eNew
     let pushed ← mkAppM `Eq.mp #[pf, e]
     return (pushed, rwr.mvarIds.length)
 
