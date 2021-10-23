@@ -6,17 +6,16 @@ open Lean.Elab.Term
 open Lean
 open ToExpr
 
+#eval true && false
 
 def applyOptM (f x : Expr) : TermElabM (Option Expr) :=
   do
     try
       let expr ← elabAppArgs f #[] #[Arg.expr x] none (explicit := false) (ellipsis := false)
-      return some expr
+      let exprType ← inferType expr
+      if (← isTypeCorrect expr) &&  (← isTypeCorrect exprType)  then return some expr
+      else return none
     catch e =>
-    try
-      let expr ← mkAppM' f #[x]
-      return some expr
-      catch e =>
       return none
 
 def listAppArgs : Expr → List Expr → TermElabM (List Expr) :=

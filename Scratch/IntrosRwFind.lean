@@ -6,6 +6,18 @@ open Meta
 open Lean.Elab.Tactic
 open Elab
 
+def exprPieces : Expr → MetaM (List Expr)
+  | Expr.app f a _ => 
+    do 
+      let ft ← inferType f
+      let expl := ft.data.binderInfo.isExplicit
+      if expl then
+      (←  exprPieces f) ++ (← exprPieces a) ++ [f, a]
+      else [f]
+  | e => try 
+            return [e]
+        catch _ => []
+
 def types : List Expr → MetaM (List Expr) :=
     fun l =>
     match l with
@@ -59,13 +71,16 @@ syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
           let introFreeVars := introVars.toList.map (fun x => mkFVar x)
           let target ←  getMVarType codmvar
           logInfo m!"intros : {← types introFreeVars}"
-          let oneStep ← iterAppRWTask n codmvar introFreeVars.toArray 
+          let goalPieces ← exprPieces target 
+          let oneStep ← iterAppRWTask n codmvar (introFreeVars).toArray 
           logInfo m!"generated : {← oneStep.mapM (fun e => inferType e)}"
           let found ← oneStep.findM? (fun e => do isDefEq (← inferType e) target)
       --     let found ← typInList? target oneStep
           match found with
           | some x => 
             do
+              logInfo m!"found : {x}"
+              logInfo m!"found-type: {← inferType x}"
               assignExprMVar codmvar x
               replaceMainGoal []
               return ()

@@ -43,8 +43,11 @@ def rwPushOpt(e : Expr) (heq : Expr)
     | none => return none
     | some pf =>
       try
-        let pushed ← mkAppM `Eq.mp #[pf, e]
-        return some pushed
+        let expr ← mkAppM ``Eq.mp #[pf, e]
+        let exprType ← inferType expr
+        if (← isTypeCorrect expr) &&  (← isTypeCorrect exprType)  
+        then return some expr
+        else return none
       catch _ => 
         return none
 
@@ -61,8 +64,10 @@ def rwPushEq  (mvarId : MVarId) (e : Expr) (heq : Expr)
 def eqCongrOpt (f: Expr)(eq : Expr) : MetaM (Option Expr) :=
   do
     try
-      let res ← mkAppM ``congrArg #[f, eq]
-      return some res
+      let expr ← mkAppM ``congrArg #[f, eq]
+      let exprType ← inferType expr
+      if (← isTypeCorrect expr) &&  (← isTypeCorrect exprType)  then return some expr
+      else return none
     catch e => 
       return none 
 
