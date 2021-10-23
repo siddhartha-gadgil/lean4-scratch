@@ -338,7 +338,7 @@ syntax (name:= exppieces) "exppieces" : tactic
         (addSingletonsToContextM  (lamImplPieces ++ lamPieces) mvar).run' 
       return ()
 
-set_option pp.all true
+-- set_option pp.all true
 
 def transitPf {α : Type}:{a b c : α} → 
           a = b → b = c → a = c := by
@@ -354,10 +354,14 @@ def transitPf {α : Type}:{a b c : α} →
 variable {M: Type u}[Mul M]
 
 example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
-            (m n : M) →  (m * n) * n = m := by
+            (m n : M) →  (m * n) = n * m := by
             intros eq1 eq2 m n
             exppieces
             exact sorry
             
 
-#check @Mul
+#check @HMul.hMul Nat Nat Nat (inferInstance)
+
+def op : Type := Nat → Nat → Nat 
+
+#check Eq
