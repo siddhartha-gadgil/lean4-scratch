@@ -83,3 +83,7 @@ syntax (name:= rwall) "rewriteAll%" term "at" term : term
 example (a b : Nat)(f: Nat → Nat  → Bool)(eq: a = b) : Unit :=
     let g := fun x : Nat => f a b
     rewriteAll% eq at g
+
+inductive Letter where
+  | α : Letter
+  | α! : Letter
