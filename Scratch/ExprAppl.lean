@@ -26,11 +26,29 @@ def nameApplyOptM (f: Name) (x : Expr) : TermElabM (Option Expr) :=
       if (← isTypeCorrect expr) &&  (← isTypeCorrect exprType)  then 
         -- Elab.logInfo m!"from name, arg : {expr}"
         return some expr
-      else return none
+      else
+      Elab.logWarning m!"not type correct : {expr}" 
+      return none
     catch e =>
         Elab.logInfo m!"failed from name, arg : 
             {f} at {x} with type {← inferType x}"
       return none
+
+syntax (name:= nameapp) "nameapply!" ident "at" term : term 
+@[termElab nameapp] def nameAppImpl : TermElab :=
+  fun stx type =>
+  match stx with
+  | `(nameapply! $n:ident at $t:term) =>
+    do
+      let f ← n.getId
+      let x ← elabTerm t none
+      Elab.logInfo m!"nameapply! {f} at {x}"
+      let exp ← mkAppM f #[x]
+      return exp
+  | _ => Elab.throwIllFormedSyntax
+
+-- #check fun m: Nat => nameapply! HMul.hMul at m
+-- #check nameapply! HMul.hMul at 3
 
 def listAppArgs : Expr → List Expr → TermElabM (List Expr) :=
   fun f args =>
