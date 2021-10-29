@@ -30,3 +30,7 @@ example : (m: Nat) → m * m = m := by
 #check fun (m: M) => HMul.hMul m 
 
 #check @HMul.hMul
+
+def mn := fun m : M => fun n: M => nameapply! HMul.hMul at m with n
+
+#check @mn

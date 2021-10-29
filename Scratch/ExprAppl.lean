@@ -34,7 +34,7 @@ def nameApplyOptM (f: Name) (x : Expr) : TermElabM (Option Expr) :=
             {f} at {x} with type {← inferType x}"
       return none
 
-syntax (name:= nameapp) "nameapply!" ident "at" term : term 
+syntax (name:= nameapp) "nameapply!" ident "at" term ("with" term)? : term 
 @[termElab nameapp] def nameAppImpl : TermElab :=
   fun stx type =>
   match stx with
@@ -45,10 +45,18 @@ syntax (name:= nameapp) "nameapply!" ident "at" term : term
       Elab.logInfo m!"nameapply! {f} at {x}"
       let exp ← mkAppM f #[x]
       return exp
+  | `(nameapply! $n:ident at $t:term with $s:term) =>
+    do
+      let f ← n.getId
+      let x ← elabTerm t none
+      let y ← elabTerm s none
+      Elab.logInfo m!"nameapply! {f} at {x}, {y}"
+      let exp ← mkAppM f #[x, y]
+      return exp
   | _ => Elab.throwIllFormedSyntax
 
 -- #check fun m: Nat => nameapply! HMul.hMul at m
--- #check nameapply! HMul.hMul at 3
+#eval nameapply! HMul.hMul at (3: Nat) with (4: Nat)
 
 def listAppArgs : Expr → List Expr → TermElabM (List Expr) :=
   fun f args =>
