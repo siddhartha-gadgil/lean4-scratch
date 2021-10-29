@@ -1,5 +1,6 @@
 import Scratch.ExprRw
 import Scratch.TermSeq
+import Scratch.ConstDeps
 import Lean.Meta
 open Lean
 open Meta
@@ -72,6 +73,8 @@ syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
           let target ←  getMVarType codmvar
           logInfo m!"intros : {← types introFreeVars}"
           let goalPieces ← exprPieces target 
+          let goalNames ← ConstDeps.recExprNames (← getEnv) target
+          logInfo m!"goalNames : {goalNames}"
           let oneStep ← iterAppRWTask n codmvar (introFreeVars).toArray 
           logInfo m!"generated : {← oneStep.mapM (fun e => inferType e)}"
           let found ← oneStep.findM? (fun e => do isDefEq (← inferType e) target)
