@@ -195,8 +195,8 @@ def Array.join {α : Type}[BEq α](a : Array (Array α)) : Array α := do
   return res
   
 
-def rwAppCongStepTask(mvarId : MVarId) : Array Expr → Task (TermElabM (Array Expr)):=
-    fun l =>
+def rwAppCongStepTask : Array Expr → Array Name → Task (TermElabM (Array Expr)):=
+    fun l names =>
     let ltml :=
       l.map $ fun arg => 
       Task.spawn $ fun _ =>
@@ -249,17 +249,17 @@ def appStepTask : Array Expr → Task (TermElabM (Array Expr)):=
       (Array.inTermElab lst).map (fun ll => (Array.join ll) ++ l)
     tml
 
-def iterAppRWTask(n: Nat)(mvarId : MVarId) : Array Expr → TermElabM (Array Expr) :=
+def iterAppRWTask(n: Nat) : Array Expr → Array Name  → TermElabM (Array Expr) :=
    match n with
-  | 0 => fun l => return l
-  | m + 1 => fun l => do
-      let prev ←  iterAppRWTask m mvarId  l
-      let rwStepTask := rwAppCongStepTask mvarId prev
+  | 0 => fun l _ => return l
+  | m + 1 => fun l names => do
+      let prev ←  iterAppRWTask m   l names
+      let rwStepTask := rwAppCongStepTask  prev names
       let rwStep ← rwStepTask.get
       return rwStep
 
-def iterAppRWMTask(n: Nat)(mvarId : MVarId) : List Expr → TermElabM (List Expr) :=
-  fun l => ((iterAppRWTask n mvarId l.toArray)).map (Array.toList)
+def iterAppRWMTask(n: Nat): List Expr → List Name → TermElabM (List Expr) :=
+  fun l names => ((iterAppRWTask n l.toArray names.toArray)).map (Array.toList)
 
 def iterAppTask(n: Nat) : Array Expr → TermElabM (Array Expr) :=
    match n with

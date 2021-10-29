@@ -75,7 +75,7 @@ syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
           let goalPieces ← exprPieces target 
           let goalNames ← ConstDeps.recExprNames (← getEnv) target
           logInfo m!"goalNames : {goalNames}"
-          let oneStep ← iterAppRWTask n codmvar (introFreeVars).toArray 
+          let oneStep ← iterAppRWTask n  (introFreeVars).toArray goalNames.toArray
           logInfo m!"generated : {← oneStep.mapM (fun e => inferType e)}"
           let found ← oneStep.findM? (fun e => do isDefEq (← inferType e) target)
       --     let found ← typInList? target oneStep

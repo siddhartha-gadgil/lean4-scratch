@@ -18,6 +18,16 @@ def applyOptM (f x : Expr) : TermElabM (Option Expr) :=
     catch e =>
       return none
 
+def nameApplyOptM (f: Name) (x : Expr) : TermElabM (Option Expr) :=
+  do
+    try
+      let expr ← mkAppM f #[x]
+      let exprType ← inferType expr
+      if (← isTypeCorrect expr) &&  (← isTypeCorrect exprType)  then return some expr
+      else return none
+    catch e =>
+      return none
+
 def listAppArgs : Expr → List Expr → TermElabM (List Expr) :=
   fun f args =>
     match args with
