@@ -18,8 +18,15 @@ theorem CzSlOly : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) =
                     congrArg (fun x => x * m) lem5 
               rw [lem3] at lem6
               assumption 
-              
+
 example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
             (m n : M) →  (m * n) * n = m := by
-            introsRwFind 2
+            introsRwFind 3
    
+example : (m: Nat) → m * m = m := by
+    introsRwFind 3
+    exact sorry
+
+#check fun (m: M) => HMul.hMul m 
+
+#check @HMul.hMul

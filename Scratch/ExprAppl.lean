@@ -23,9 +23,13 @@ def nameApplyOptM (f: Name) (x : Expr) : TermElabM (Option Expr) :=
     try
       let expr ← mkAppM f #[x]
       let exprType ← inferType expr
-      if (← isTypeCorrect expr) &&  (← isTypeCorrect exprType)  then return some expr
+      if (← isTypeCorrect expr) &&  (← isTypeCorrect exprType)  then 
+        -- Elab.logInfo m!"from name, arg : {expr}"
+        return some expr
       else return none
     catch e =>
+        Elab.logInfo m!"failed from name, arg : 
+            {f} at {x} with type {← inferType x}"
       return none
 
 def listAppArgs : Expr → List Expr → TermElabM (List Expr) :=
