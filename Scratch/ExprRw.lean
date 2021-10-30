@@ -163,6 +163,39 @@ def iterRWPairsM(n : Nat)(mvarId : MVarId)(symm: Bool) : List Expr → MetaM (Li
        let prev ← iterRWPairsM m mvarId symm  l
        return ← rwPairsCuml mvarId symm prev
 
+def isle (type: Expr)(evolve : List Expr → TermElabM (List Expr))(init : List Expr)
+       (includePi : Bool := true): TermElabM (List Expr) := 
+    withLocalDecl Name.anonymous BinderInfo.default (mkConst ``Nat)  $ fun x => 
+        do
+          let l := x :: init
+          let evl ← evolve l
+          let evt ← evl.filterM (fun x => liftMetaM (isType x))
+          let exported ← evl.mapM (fun e => mkLambdaFVars #[x] e)
+          let exportedPi ← evt.mapM (fun e => mkForallFVars #[x] e)
+          let res := if includePi then exported ++ exportedPi else exported
+          return res
+
+def isleSum (types: List Expr)(evolve : List Expr → TermElabM (List Expr))(init : List Expr) : 
+        TermElabM (List Expr) := 
+        match types with
+        | [] => return []
+        | h :: t => 
+          do
+            let tail ← isleSum t evolve init
+            let head ← isle h evolve init
+            return head ++ tail        
+
+def eqIsle (eq: Expr)(evolve : List Expr → TermElabM (List Expr))(init : List Expr) : 
+        TermElabM (List Expr) := 
+        do
+          match eq.eq? with
+          | some (α, lhs, rhs) => 
+            do
+              let fs ← isle α evolve init
+              let shifted ← fs.filterMapM (fun f => eqCongrOpt f eq)
+              return shifted
+          | _ => return []
+
 def iterAppRWM(n: Nat)(mvarId : MVarId) : List Expr → MetaM (List Expr) :=
    match n with
   | 0 => fun l => return l

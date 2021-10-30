@@ -14,28 +14,6 @@ def isType : Expr → MetaM Bool :=
       let tp ← inferType exp
       return tp.isSort
 
-def isle (type: Expr)(evolve : List Expr → TermElabM (List Expr))(init : List Expr)
-       (includePi : Bool := true): TermElabM (List Expr) := 
-    withLocalDecl Name.anonymous BinderInfo.default (mkConst ``Nat)  $ fun x => 
-        do
-          let l := x :: init
-          let evl ← evolve l
-          let evt ← evl.filterM (fun x => liftMetaM (isType x))
-          let exported ← evl.mapM (fun e => mkLambdaFVars #[x] e)
-          let exportedPi ← evt.mapM (fun e => mkForallFVars #[x] e)
-          let res := if includePi then exported ++ exportedPi else exported
-          return res
-
-def isleSum (types: List Expr)(evolve : List Expr → TermElabM (List Expr))(init : List Expr) : 
-        TermElabM (List Expr) := 
-        match types with
-        | [] => return []
-        | h :: t => 
-          do
-            let tail ← isleSum t evolve init
-            let head ← isle h evolve init
-            return head ++ tail        
-
 set_option pp.all true
 
 def generate1 (mvar: MVarId): List Expr → TermElabM (List Expr) :=
