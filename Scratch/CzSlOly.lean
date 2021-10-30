@@ -21,10 +21,10 @@ theorem CzSlOly : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) =
 
 example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
             (m n : M) →  (m * n) * n = m := by
-            introsRwFind 3
+            introsRwFind 2
    
 example : (m: Nat) → m * m = m := by
-    introsRwFind 3
+    introsRwFind 2
     exact sorry
 
 #check fun (m: M) => HMul.hMul m 

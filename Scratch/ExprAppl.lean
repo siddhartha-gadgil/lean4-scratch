@@ -34,6 +34,22 @@ def nameApplyOptM (f: Name) (x : Expr) : TermElabM (Option Expr) :=
             {f} at {x} with type {← inferType x}"
       return none
 
+def nameApplyPairOptM (f: Name) (x y: Expr) : TermElabM (Option Expr) :=
+  do
+    try
+      let expr ← mkAppM f #[x, y]
+      let exprType ← inferType expr
+      if (← isTypeCorrect expr) &&  (← isTypeCorrect exprType)  then 
+        -- Elab.logInfo m!"from name, arg : {expr}"
+        return some expr
+      else
+      Elab.logWarning m!"not type correct : {expr}" 
+      return none
+    catch e =>
+        Elab.logInfo m!"failed from name, arg : 
+            {f} at {x}, {y} with type {← inferType x}"
+      return none
+
 syntax (name:= nameapp) "nameapply!" ident "at" term ("with" term)? : term 
 @[termElab nameapp] def nameAppImpl : TermElab :=
   fun stx type =>

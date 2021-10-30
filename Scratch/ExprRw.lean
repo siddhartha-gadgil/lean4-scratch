@@ -214,7 +214,12 @@ def rwAppCongStepTask : Array Expr → Array Name → Task (TermElabM (Array Exp
         else 
           let apps ← l.filterMapM (fun f => applyOptM f arg)
           let nameApps ← names.filterMapM (fun name => nameApplyOptM name arg)
-          return apps ++ nameApps
+          let nameAppPairsRaw ← 
+            Array.inTermElab (l.map (fun arg2 => names.filterMapM (fun name => 
+                    nameApplyPairOptM name arg arg2
+                    )))
+          let nameAppPairs := nameAppPairsRaw.join
+          return apps ++ nameApps ++ nameAppPairs
     let tlml := Task.array ltml 
     let tml := tlml.map $ fun lst => 
       (Array.inTermElab lst).map (fun ll => (Array.join ll) ++ l)
