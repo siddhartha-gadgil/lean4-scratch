@@ -67,7 +67,8 @@ def eqCongrOpt (f: Expr)(eq : Expr) : MetaM (Option Expr) :=
       let expr ← mkAppM ``congrArg #[f, eq]
       let exprType ← inferType expr
       if (← isTypeCorrect expr) &&  (← isTypeCorrect exprType)  then return some expr
-      else return none
+      else 
+        return none
     catch e => 
       return none 
 
@@ -163,38 +164,52 @@ def iterRWPairsM(n : Nat)(mvarId : MVarId)(symm: Bool) : List Expr → MetaM (Li
        let prev ← iterRWPairsM m mvarId symm  l
        return ← rwPairsCuml mvarId symm prev
 
-def isle (type: Expr)(evolve : List Expr → TermElabM (List Expr))(init : List Expr)
-       (includePi : Bool := true): TermElabM (List Expr) := 
-    withLocalDecl Name.anonymous BinderInfo.default (mkConst ``Nat)  $ fun x => 
+def isle (type: Expr)(evolve : Array Expr → TermElabM (Array Expr))(init : List Expr)
+       (includePi : Bool := true): TermElabM (Array Expr) := 
+    withLocalDecl Name.anonymous BinderInfo.default (type)  $ fun x => 
         do
           let l := x :: init
-          let evl ← evolve l
+          let evl ← evolve l.toArray
           let evt ← evl.filterM (fun x => liftMetaM (isType x))
           let exported ← evl.mapM (fun e => mkLambdaFVars #[x] e)
           let exportedPi ← evt.mapM (fun e => mkForallFVars #[x] e)
           let res := if includePi then exported ++ exportedPi else exported
           return res
 
-def isleSum (types: List Expr)(evolve : List Expr → TermElabM (List Expr))(init : List Expr) : 
-        TermElabM (List Expr) := 
+def isleSum (types: List Expr)(evolve : Array Expr → TermElabM (Array Expr))(init : List Expr) : 
+        TermElabM (Array Expr) := 
         match types with
-        | [] => return []
+        | [] => return #[]
         | h :: t => 
           do
             let tail ← isleSum t evolve init
             let head ← isle h evolve init
             return head ++ tail        
 
-def eqIsle (eq: Expr)(evolve : List Expr → TermElabM (List Expr))(init : List Expr) : 
-        TermElabM (List Expr) := 
+def Array.join {α : Type}[BEq α](a : Array (Array α)) : Array α := do
+  let mut res : Array α  := #[]
+  for x in a do
+    for y in x do
+      res := if res.contains y then res else res.push y
+  return res
+
+def eqIsles (eqs: Array Expr)(evolve : Array Expr → TermElabM (Array Expr))(init : List Expr) : 
+        TermElabM (Array Expr) := 
         do
-          match eq.eq? with
+        let res ← eqs.filterMapM $ fun eq => do
+          match (← inferType eq).eq? with
           | some (α, lhs, rhs) => 
             do
+              Elab.logInfo m!"isles for: {α}; {lhs} = {rhs}"
               let fs ← isle α evolve init
+              Elab.logInfo m!"generated in isle: {fs}"
+              Elab.logInfo m!"types from  isle: {← fs.mapM (fun e => inferType e)}"
               let shifted ← fs.filterMapM (fun f => eqCongrOpt f eq)
-              return shifted
-          | _ => return []
+              logInfo m!"example: {← mkAppM ``congrArg #[fs[0], eq]}"
+              Elab.logInfo m!"shifted by isle: {shifted}"
+              return some shifted
+          | _ => return none
+        return res.join
 
 def iterAppRWM(n: Nat)(mvarId : MVarId) : List Expr → MetaM (List Expr) :=
    match n with
@@ -220,12 +235,6 @@ def Array.inTermElab {α : Type}(l : Array (TermElabM α)) : TermElabM (Array α
 
 #check @Array.foldl
 
-def Array.join {α : Type}[BEq α](a : Array (Array α)) : Array α := do
-  let mut res : Array α  := #[]
-  for x in a do
-    for y in x do
-      res := if res.contains y then res else res.push y
-  return res
   
 
 def rwAppCongStepTask : Array Expr → Array Name → Task (TermElabM (Array Expr)):=
@@ -296,8 +305,11 @@ def iterAppRWTask(n: Nat) : Array Expr → Array Name  → TermElabM (Array Expr
   | m + 1 => fun l names => do
       let prev ←  iterAppRWTask m   l names
       let rwStepTask := rwAppCongStepTask  prev names
+      let isles ← eqIsles prev 
+        (fun list => (iterAppRWTask m list names)) prev.toList
+      Elab.logInfo m!"isles: {isles}"
       let rwStep ← rwStepTask.get
-      return rwStep
+      return rwStep ++ isles
 
 def iterAppRWMTask(n: Nat): List Expr → List Name → TermElabM (List Expr) :=
   fun l names => ((iterAppRWTask n l.toArray names.toArray)).map (Array.toList)
