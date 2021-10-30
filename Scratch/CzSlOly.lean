@@ -23,7 +23,7 @@ example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
             (m n : M) →  (m * n) * n = m := by
             introsRwFind 2
    
-example : (m: Nat) → m * m = m := by
+example : (m n: M) → m * n = m := by
     introsRwFind 2
     exact sorry
 
