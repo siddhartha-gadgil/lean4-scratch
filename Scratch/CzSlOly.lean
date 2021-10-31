@@ -22,10 +22,13 @@ theorem CzSlOly : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) =
 example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
             (m n : M) →  (m * n) * n = m := by
             introsRwFind 2
-   
-example : (m n: M) → m * n = m := by
+
+set_option maxHeartbeats 200000
+
+
+example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * n * n = m := by
     introsRwFind 2
-    exact sorry
+
 
 #check fun (m: M) => HMul.hMul m 
 

@@ -76,8 +76,8 @@ syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
           let goalNames ← ConstDeps.recExprNames (← getEnv) target
           logInfo m!"goalNames : {goalNames}"
           let oneStep ← iterAppRWTask n  (introFreeVars).toArray goalNames.toArray
-          logInfo m!"generated types : {← oneStep.mapM (fun e => inferType e)}"
-          logInfo m!"generated terms : {oneStep}"
+          -- logInfo m!"generated types : {← oneStep.mapM (fun e => inferType e)}"
+          -- logInfo m!"generated terms : {oneStep}"
           let found ← oneStep.findM? (fun e => do isDefEq (← inferType e) target)
       --     let found ← typInList? target oneStep
           match found with
@@ -129,7 +129,7 @@ def transPf {α : Type}{a b c : α}(f: α → Nat) :
 
 theorem idsEqual{μ : Type}{mul: μ → μ → μ}:
       (eₗ : μ) → (eᵣ : μ) → (leftId : (x : μ ) →  mul eₗ x = x) → 
-      (rightId : (x : μ ) →  mul x eᵣ = x) →
+      (rightId : (x : μ ) →  mul x eᵣ = x) → 
       eₗ = eᵣ := by 
         introsRwFind 2
         

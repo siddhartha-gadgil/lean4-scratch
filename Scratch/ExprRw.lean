@@ -6,6 +6,18 @@ open Meta
 open Elab
 open Lean.Elab.Tactic
 
+def contains : Expr → Expr → MetaM Bool
+  | e, x => 
+    do 
+    if ← isDefEq e x then return true
+    else 
+    match e with
+    | Expr.app f a _ => (← contains f x) || (← contains a x)
+    | Expr.lam _ _ b _ => (← contains b x)
+    | Expr.forallE _ _ b _ => (← contains b x) 
+    | _ => return false
+
+
 -- copied from lean4 source code
 def rewriteProof (e: Expr) (heq : Expr) (symm : Bool := false) : MetaM (Option Expr) :=
   do
@@ -169,7 +181,13 @@ def isle (type: Expr)(evolve : Array Expr → TermElabM (Array Expr))(init : Lis
     withLocalDecl Name.anonymous BinderInfo.default (type)  $ fun x => 
         do
           let l := x :: init
-          let evl ← evolve l.toArray
+          -- logInfo m!"initial in isle: {l}"
+          let evb ← evolve l.toArray
+          let evc ← evolve init.toArray
+          let mut evl : Array Expr := #[]
+          for y in evb do
+            unless (evc.contains y) do 
+              evl := evl.push y 
           let evt ← evl.filterM (fun x => liftMetaM (isType x))
           let exported ← evl.mapM (fun e => mkLambdaFVars #[x] e)
           let exportedPi ← evt.mapM (fun e => mkForallFVars #[x] e)
@@ -202,10 +220,10 @@ def eqIsles (eqs: Array Expr)(evolve : Array Expr → TermElabM (Array Expr))(in
             do
               Elab.logInfo m!"isles for: {α}; {lhs} = {rhs}"
               let fs ← isle α evolve init
-              Elab.logInfo m!"generated in isle: {fs}"
-              Elab.logInfo m!"types from  isle: {← fs.mapM (fun e => inferType e)}"
+              Elab.logInfo m!"generated in isle: {← fs.mapM (fun e => whnf e)}"
+              Elab.logInfo m!"types from  isle: {← fs.mapM (fun e => do whnf (← inferType e))}"
               let shifted ← fs.filterMapM (fun f => eqCongrOpt f eq)
-              logInfo m!"example: {← mkAppM ``congrArg #[fs[0], eq]}"
+              -- logInfo m!"example: {← mkAppM ``congrArg #[fs[0], eq]}"
               Elab.logInfo m!"shifted by isle: {shifted}"
               return some shifted
           | _ => return none
