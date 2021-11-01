@@ -220,11 +220,11 @@ def eqIsles (eqs: Array Expr)(evolve : Array Expr → TermElabM (Array Expr))(in
             do
               Elab.logInfo m!"isles for: {α}; {lhs} = {rhs}"
               let fs ← isle α evolve init
-              Elab.logInfo m!"generated in isle: {← fs.mapM (fun e => whnf e)}"
-              Elab.logInfo m!"types from  isle: {← fs.mapM (fun e => do whnf (← inferType e))}"
+              -- Elab.logInfo m!"generated in isle: {← fs.mapM (fun e => whnf e)}"
+              -- Elab.logInfo m!"types from  isle: {← fs.mapM (fun e => do whnf (← inferType e))}"
               let shifted ← fs.filterMapM (fun f => eqCongrOpt f eq)
               -- logInfo m!"example: {← mkAppM ``congrArg #[fs[0], eq]}"
-              Elab.logInfo m!"shifted by isle: {shifted}"
+              -- Elab.logInfo m!"shifted by isle: {shifted}"
               return some shifted
           | _ => return none
         return res.join
@@ -325,7 +325,7 @@ def iterAppRWTask(n: Nat) : Array Expr → Array Name  → TermElabM (Array Expr
       let rwStepTask := rwAppCongStepTask  prev names
       let isles ← eqIsles prev 
         (fun list => (iterAppRWTask m list names)) prev.toList
-      Elab.logInfo m!"isles: {isles}"
+      -- Elab.logInfo m!"isles: {isles}"
       let rwStep ← rwStepTask.get
       return rwStep ++ isles
 

@@ -1,6 +1,8 @@
 import Scratch.ExprAppl
 import Lean.Meta
 import Lean.Elab
+import Std.Data.HashMap
+open Std
 open Lean
 open Meta
 open Elab
@@ -87,3 +89,55 @@ example (a b : Nat)(f: Nat → Nat  → Bool)(eq: a = b) : Unit :=
 inductive Letter where
   | α : Letter
   | α! : Letter
+
+initialize exprCache : IO.Ref (HashMap Name Expr) ← IO.mkRef (HashMap.empty)
+
+def getCached? (name : Name) : IO (Option (Expr)) := do
+  let cache ← exprCache.get
+  return (cache.find? name)
+
+def cache (name: Name)(e: Expr)  : IO Unit := do
+  let cache ← exprCache.get
+  exprCache.set (cache.insert name e)
+  return ()
+
+syntax (name:= saveexpr) "cache!" term "at" ident : term
+@[termElab saveexpr] def cacheImp : TermElab :=
+  fun stx expectedType? =>
+  match stx with
+  | `(cache! $t at $name) =>
+    do
+      let t ← Term.elabTerm t none false
+      logInfo m!"caching {name} : {t}"
+      let t ← whnf t
+      logInfo m!"whnf: {t}"  
+      let name ← name.getId
+      Term.synthesizeSyntheticMVarsNoPostponing 
+      let (e, _) ← Term.levelMVarToParam (← instantiateMVars t)
+      cache name e
+      logInfo m!"cached {name} : {e}"
+      return t
+  | _ => throwIllFormedSyntax
+
+#check @id
+
+syntax (name:= loadexpr) "load!" ident :term
+@[termElab loadexpr] def loadImp : TermElab :=
+  fun stx expectedType? =>
+  match stx with
+  | `(load! $name) =>
+    do
+      let name ← name.getId
+      let cache ← exprCache.get
+      logInfo m!"loading: {name}"
+      let e ← cache.find? name
+      logInfo m!"loading {name} : {e}"
+      match e with
+      | some e =>
+        logInfo m!"level mvar? {e.hasLevelMVar}"
+        logInfo m!"level param? {e.hasLevelParam}" 
+        return e
+      | none => throwError "no such expression"
+  | _ => throwIllFormedSyntax
+
+-- L∃∀N 
