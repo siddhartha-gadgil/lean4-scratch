@@ -11,7 +11,7 @@ def egLoad :=  load! hello
 #eval egLoad
 
 
-#check cache! (fun (x: Nat) => x * (2: Nat)) at func 
+#check cache! (fun (x: Nat) => x * 2) at func 
 
 #check (load! func)
 
@@ -30,3 +30,7 @@ def fff := load! func
 #check @OfNat.ofNat
 
 #eval  getCached? `ten
+
+def tten := load! ten
+
+#eval tten

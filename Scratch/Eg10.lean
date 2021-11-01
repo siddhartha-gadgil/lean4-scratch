@@ -108,7 +108,7 @@ syntax (name:= saveexpr) "cache!" term "at" ident : term
   | `(cache! $t at $name) =>
     do
       let t ← Term.elabTerm t none false
-      logInfo m!"caching {name} : {t}"
+      logInfo m!"caching raw {name} : {t}"
       let t ← whnf t
       logInfo m!"whnf: {t}"  
       let name ← name.getId
@@ -116,7 +116,7 @@ syntax (name:= saveexpr) "cache!" term "at" ident : term
       let (e, _) ← Term.levelMVarToParam (← instantiateMVars t)
       cache name e
       logInfo m!"cached {name} : {e}"
-      return t
+      return e
   | _ => throwIllFormedSyntax
 
 #check @id
