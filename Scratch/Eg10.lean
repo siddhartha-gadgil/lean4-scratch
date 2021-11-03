@@ -141,3 +141,5 @@ syntax (name:= loadexpr) "load!" ident :term
   | _ => throwIllFormedSyntax
 
 -- L∃∀N 
+
+#eval (#[1, 3, 5]).back
