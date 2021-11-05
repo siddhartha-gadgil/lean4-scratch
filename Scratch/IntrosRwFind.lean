@@ -53,7 +53,7 @@ def addAllToContextM (values : List Expr) :
           let newMVarIds ← addToContextM Name.anonymous (← inferType h) h m
           addAllToContextM t newMVarIds.head!
 
-syntax (name:= introsRwFind) "introsRwFind" (term)? : tactic
+syntax (name:= introsRwFind) "introsRwFind" (term)? ("save:" ident)?: tactic
 @[tactic introsRwFind] def introsRwfindImpl : Tactic :=
   fun stx  =>
   match stx with

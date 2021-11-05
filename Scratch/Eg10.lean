@@ -108,31 +108,6 @@ def saveExpr (name: Name)(e: Expr) : TermElabM Expr := do
   cache name e
   return e
 
-initialize exprArrCache : IO.Ref (HashMap Name (Array Expr)) ← IO.mkRef (HashMap.empty)
-
-def getArrCached? (name : Name) : IO (Option (Array Expr)) := do
-  let cache ← exprArrCache.get
-  return (cache.find? name)
-
-def cacheArr (name: Name)(e: Array Expr)  : IO Unit := do
-  let cache ← exprArrCache.get
-  exprArrCache.set (cache.insert name e)
-  return ()
-
-def saveExprArr (name: Name)(es: Array Expr) : TermElabM (Array Expr) := do
-  let es ← es.mapM (fun e => whnf e)
-  Term.synthesizeSyntheticMVarsNoPostponing 
-  let espair ← es.mapM (fun e => do Term.levelMVarToParam (← instantiateMVars e))
-  let es ← espair.mapM fun (e, _) => return e
-  cacheArr name es
-  return es
-
-def loadExprArr (name: Name) : TermElabM (Array Expr) := do
-  let cache ← exprArrCache.get
-  match cache.find? name with
-  | some es => return es
-  | none => throwError m!"no cached expr for {name}"
-
 syntax (name:= saveexpr) "cache!" term "at" ident : term
 @[termElab saveexpr] def cacheImp : TermElab :=
   fun stx expectedType? =>
