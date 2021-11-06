@@ -74,13 +74,13 @@ syntax (name:= introsRwFind) "introsRwFind" (term ("save:" ident)?)?: tactic
         let mvar ← getMainGoal
         let ⟨introVars, codmvar⟩ ← Meta.intros mvar
         withMVarContext codmvar do
-          let introFreeVars := introVars.toList.map (fun x => mkFVar x)
+          let introFreeVars := introVars.map (fun x => mkFVar x)
           let target ←  getMVarType codmvar
-          logInfo m!"intros : {← types introFreeVars}"
+          logInfo m!"intros : {← types introFreeVars.toList}"
           let goalPieces ← exprPieces target 
           let goalNames ← ConstDeps.recExprNames (← getEnv) target
           logInfo m!"goalNames : {goalNames}"
-          let evolved ← iterAppRWTask n  (introFreeVars).toArray goalNames.toArray
+          let evolved ← iterAppRWTask n  (introFreeVars) goalNames.toArray
           -- let unit ←  match nameOpt with
           --   | some name => saveExprArr name evolved
           --   | none => return ()
@@ -98,7 +98,7 @@ syntax (name:= introsRwFind) "introsRwFind" (term ("save:" ident)?)?: tactic
               let unit ←  match nameOpt with
                 | some name =>
                   let exported ← evolved.mapM (
-                      fun e => mkLambdaFVars introFreeVars.toArray e) 
+                      fun e => mkLambdaFVars introFreeVars e) 
                   saveExprArr name exported
                 | none => return ()
               return ()
@@ -111,13 +111,13 @@ syntax (name:= introsRwFind) "introsRwFind" (term ("save:" ident)?)?: tactic
             let unit ←  match nameOpt with
                 | some name =>
                   let exported ← evolved.mapM (
-                      fun e => mkLambdaFVars introFreeVars.toArray e) 
+                      fun e => mkLambdaFVars introFreeVars e) 
                   saveExprArr name exported
                 | none => return ()
             return ()
 
 
-def modusPonens {α β : Type} : α → (α → β) → β := by
+def modusPonens : {α β : Type} →  α → (α → β) → β := by
       introsRwFind 1 save:blah
 
 def modus_ponens (α β : Prop) : α → (α → β) → β := by
