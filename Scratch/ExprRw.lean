@@ -368,13 +368,13 @@ def cacheArr (name: Name)(e: Array Expr)  : IO Unit := do
   exprArrCache.set (cache.insert name e)
   return ()
 
-def saveExprArr (name: Name)(es: Array Expr) : TermElabM (Array Expr) := do
+def saveExprArr (name: Name)(es: Array Expr) : TermElabM (Unit) := do
   let es ← es.mapM (fun e => whnf e)
   Term.synthesizeSyntheticMVarsNoPostponing 
   let espair ← es.mapM (fun e => do Term.levelMVarToParam (← instantiateMVars e))
   let es ← espair.mapM fun (e, _) => return e
   cacheArr name es
-  return es
+  return ()
 
 def loadExprArr (name: Name) : TermElabM (Array Expr) := do
   let cache ← exprArrCache.get

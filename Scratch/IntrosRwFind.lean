@@ -53,18 +53,23 @@ def addAllToContextM (values : List Expr) :
           let newMVarIds ← addToContextM Name.anonymous (← inferType h) h m
           addAllToContextM t newMVarIds.head!
 
-syntax (name:= introsRwFind) "introsRwFind" (term)? ("save:" ident)?: tactic
+syntax (name:= introsRwFind) "introsRwFind" (term ("save:" ident)?)?: tactic
 @[tactic introsRwFind] def introsRwfindImpl : Tactic :=
   fun stx  =>
   match stx with
   | `(tactic|introsRwFind) => 
-    introsRWAux 1
+    introsRWAux 1 none
   | `(tactic|introsRwFind $t) => 
     withMainContext do
       let n : Nat <- t.isNatLit?.getD 0
-      introsRWAux n
+      introsRWAux n none
+  | `(tactic|introsRwFind $t save:$name) => 
+    withMainContext do
+      let n : Nat <- t.isNatLit?.getD 0
+      let name ← name.getId
+      introsRWAux n (some name)
   | _ => Elab.throwIllFormedSyntax
-      where introsRWAux (n: Nat) : TacticM Unit :=
+      where introsRWAux (n: Nat)(nameOpt: Option Name) : TacticM Unit :=
         withMainContext do
         let mvar ← getMainGoal
         let ⟨introVars, codmvar⟩ ← Meta.intros mvar
@@ -75,11 +80,14 @@ syntax (name:= introsRwFind) "introsRwFind" (term)? ("save:" ident)?: tactic
           let goalPieces ← exprPieces target 
           let goalNames ← ConstDeps.recExprNames (← getEnv) target
           logInfo m!"goalNames : {goalNames}"
-          let oneStep ← iterAppRWTask n  (introFreeVars).toArray goalNames.toArray
-          -- logInfo m!"generated types : {← oneStep.mapM (fun e => inferType e)}"
-          -- logInfo m!"generated terms : {oneStep}"
-          let found ← oneStep.findM? (fun e => do isDefEq (← inferType e) target)
-      --     let found ← typInList? target oneStep
+          let evolved ← iterAppRWTask n  (introFreeVars).toArray goalNames.toArray
+          -- let unit ←  match nameOpt with
+          --   | some name => saveExprArr name evolved
+          --   | none => return ()
+          -- logInfo m!"generated types : {← evolved.mapM (fun e => inferType e)}"
+          -- logInfo m!"generated terms : {evolved}"
+          let found ← evolved.findM? (fun e => do isDefEq (← inferType e) target)
+      --     let found ← typInList? target evolved
           match found with
           | some x => 
             do
@@ -87,21 +95,42 @@ syntax (name:= introsRwFind) "introsRwFind" (term)? ("save:" ident)?: tactic
               logInfo m!"found-type: {← inferType x}"
               assignExprMVar codmvar x
               replaceMainGoal []
+              let unit ←  match nameOpt with
+                | some name =>
+                  let exported ← evolved.mapM (
+                      fun e => mkLambdaFVars introFreeVars.toArray e) 
+                  saveExprArr name exported
+                | none => return ()
               return ()
           | none => 
             replaceMainGoal [codmvar]
-            -- let value ← TermSeq.pack oneStep.toList
+            -- let value ← TermSeq.pack evolved.toList
             -- let type ← inferType value
             -- let name := `genpack
             -- liftMetaTactic $  addToContextM name type value 
+            let unit ←  match nameOpt with
+                | some name =>
+                  let exported ← evolved.mapM (
+                      fun e => mkLambdaFVars introFreeVars.toArray e) 
+                  saveExprArr name exported
+                | none => return ()
             return ()
 
 
 def modusPonens {α β : Type} : α → (α → β) → β := by
-      introsRwFind
+      introsRwFind 1 save:blah
 
 def modus_ponens (α β : Prop) : α → (α → β) → β := by
       introsRwFind
+
+def blah := loadExprArr `blah
+
+def blahTypes : TermElabM (Array Expr) := do 
+    let es ←  blah
+    return ← es.mapM (fun e => inferType e)
+
+#eval blahTypes
+#eval blah
 
 #print modusPonens
 #print modus_ponens
