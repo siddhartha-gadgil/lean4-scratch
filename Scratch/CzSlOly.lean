@@ -47,8 +47,8 @@ example : (∀ a b : M, (a * b) * b = a) → (m n: M)  →
 example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → 
             (m * n) * ((m * n) * n) = (m * n) * m := by
     intros eq m n
-    polyFind #⟨eq, m, n, m *n⟩ 1 save:mmnn
-    eqDeduc #⟨eq, m, n, m * n⟩ 1 eqs:mnn save:mmnn2
+    polyFind #⟨eq, m, n⟩ 2 save:mmnn
+    eqDeduc #⟨eq, m, n⟩ 2 eqs:mmnn save:mmnn2
 /-
 example : (∀ a b : M, (a * b) * b = a) →  (∀ a b : M, a * (a * b) = b) →  (m n: M)  → 
             (m * n) * m = n := by

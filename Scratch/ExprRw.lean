@@ -263,24 +263,22 @@ def rwAppCongStepTask : Array Expr → Array Name → Task (TermElabM (Array Exp
       l.map $ fun arg => 
       Task.spawn $ fun _ =>
       do
-        let type ← inferType arg
-        if type.isEq
-        then 
-          let rws ← l.filterMapM (fun f => rwPushOpt  f arg)
-          let rwsFlip ← l.filterMapM (fun f => rwPushOpt f arg true)
-          let congs ← l.filterMapM (fun f => eqCongrOpt f arg)
-          let apps ← l.filterMapM (fun f => applyOptM f arg)
-          let nameApps ← names.filterMapM (fun name => nameApplyOptM name arg)
-          return (rws.append 
-                    (rwsFlip.append (congs.append (apps)))).append (nameApps) 
-        else 
-          let apps ← l.filterMapM (fun f => applyOptM f arg)
+        let apps ← l.filterMapM (fun f => applyOptM f arg)
           let nameApps ← names.filterMapM (fun name => nameApplyOptM name arg)
           let nameAppPairsRaw ← 
             Array.inTermElab (l.map (fun arg2 => names.filterMapM (fun name => 
                     nameApplyPairOptM name arg arg2
                     )))
           let nameAppPairs := nameAppPairsRaw.join
+        let type ← inferType arg
+        if type.isEq
+        then 
+          let rws ← l.filterMapM (fun f => rwPushOpt  f arg)
+          let rwsFlip ← l.filterMapM (fun f => rwPushOpt f arg true)
+          let congs ← l.filterMapM (fun f => eqCongrOpt f arg)
+          return (rws.append 
+                    (rwsFlip.append (congs.append (apps)))).append (nameApps) ++ nameAppPairs 
+        else           
           return apps ++ nameApps ++ nameAppPairs
     let tlml := Task.array ltml 
     let tml := tlml.map $ fun lst => 
