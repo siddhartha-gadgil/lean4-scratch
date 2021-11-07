@@ -53,11 +53,10 @@ def addAllToContextM (values : List Expr) :
           let newMVarIds ← addToContextM Name.anonymous (← inferType h) h m
           addAllToContextM t newMVarIds.head!
 
-def generateSeek(n: Nat)(nameOpt: Option Name)(introVars: Array FVarId)
+def generateSeek(n: Nat)(nameOpt: Option Name)(introFreeVars: Array Expr)
       (goalNames : List Name)(mvar: MVarId)
       (dynamics : Nat → Array Expr → Array Name → TermElabM (Array Expr)) : TacticM Unit :=
               withMVarContext mvar do
-          let introFreeVars := introVars.map (fun x => mkFVar x)
           -- logInfo m!"intros : {← types introFreeVars.toList}"
           let target ←  getMVarType mvar
           let evolved ← dynamics n  (introFreeVars) goalNames.toArray
@@ -99,11 +98,43 @@ syntax (name:= introsRwFind) "introsRwFind" (term ("save:" ident)?)?: tactic
         let mvar ← getMainGoal
         let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
         let ⟨introVars, codmvar⟩ ← Meta.intros mvar
+        let introFreeVars := introVars.map (fun x => mkFVar x)
         logInfo m!"goalNames : {goalNames}"
-        generateSeek n nameOpt introVars goalNames codmvar iterAppRWTask
+        generateSeek n nameOpt introFreeVars goalNames codmvar iterAppRWTask
+
+syntax (name:= polyFind) "polyFind" "#⟨" term,* "⟩" (term ("save:" ident)?)?: tactic
+@[tactic polyFind] def polyfindImpl : Tactic :=
+  fun stx  =>
+  match stx with
+  | `(tactic|polyFind #⟨$[$xs:term],*⟩) => 
+    withMainContext do
+    let introFreeVars ←  xs.mapM (fun x => elabTerm x none)
+    polyFindAux introFreeVars 1 none
+  | `(tactic|polyFind #⟨$[$xs:term],*⟩ $t) => 
+    withMainContext do
+      let introFreeVars ←  xs.mapM (fun x => elabTerm x none)
+      let n : Nat <- t.isNatLit?.getD 0
+      polyFindAux introFreeVars n none
+  | `(tactic|polyFind #⟨$[$xs:term],*⟩ $t save:$name) => 
+    withMainContext do
+      let introFreeVars ←  xs.mapM (fun x => elabTerm x none)
+      let n : Nat <- t.isNatLit?.getD 0
+      let name ← name.getId
+      polyFindAux introFreeVars n (some name)
+  | _ => Elab.throwIllFormedSyntax
+      where polyFindAux (introFreeVars: Array Expr) (n: Nat)
+                  (nameOpt: Option Name) : TacticM Unit :=
+        withMainContext do
+        let mvar ← getMainGoal
+        let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
+        generateSeek n nameOpt introFreeVars goalNames mvar iterAppRWTask
 
 def modusPonens : {α β : Type} →  α → (α → β) → β := by
       introsRwFind 1 save:blah
+
+example {α β : Type} : α → (α → β) → β := by
+    intros x f
+    polyFind #⟨x, f⟩ 
 
 def modus_ponens (α β : Prop) : α → (α → β) → β := by
       introsRwFind
@@ -147,3 +178,9 @@ theorem idsEqual{μ : Type}{mul: μ → μ → μ}:
       eₗ = eᵣ := by 
         introsRwFind 2
         
+example {μ : Type}{mul: μ → μ → μ}:
+      (eₗ : μ) → (eᵣ : μ) → (leftId : (x : μ ) →  mul eₗ x = x) → 
+      (rightId : (x : μ ) →  mul x eᵣ = x) → 
+      eₗ = eᵣ := by
+        intros eₗ eᵣ lid rid
+        polyFind #⟨eₗ, eᵣ, lid, rid⟩ 2 save:poly
