@@ -29,6 +29,15 @@ set_option maxHeartbeats 200000
 example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * n * n = m := by
     introsRwFind 2
 
+example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * n * n = m := by
+    intros eq m n
+    polyFind #⟨eq, m, n⟩ 2
+
+example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * (m * n * n) = m * m := by
+    intros eq m n
+    polyFind #⟨eq, m, n⟩ 2 save:mnn
+    eqDeduc #⟨eq, m, n⟩ 2 eqs:mnn
+
 
 #check fun (m: M) => HMul.hMul m 
 
