@@ -218,7 +218,7 @@ example {μ : Type}{mul: μ → μ → μ}:
 
 -- deducing from equalities
 
-syntax (name:= eqDeduc) "eqDeduc" ("#⟨" term,* "⟩") (term ("eqs:" ident)): tactic
+syntax (name:= eqDeduc) "eqDeduc" ("#⟨" term,* "⟩") (term ("eqs:" ident)) ("save:" ident)?: tactic
 @[tactic eqDeduc] def eqDeducImpl : Tactic :=
   fun stx  =>
   match stx with
@@ -235,4 +235,17 @@ syntax (name:= eqDeduc) "eqDeduc" ("#⟨" term,* "⟩") (term ("eqs:" ident)): t
         (fun list => (iterAppRWTask m list names)) init.toList
       let mvar ← getMainGoal
       generateSeek n none introFreeVars none goalNames mvar dynamics
+  | `(tactic|eqDeduc #⟨$[$xs:term],*⟩ $t eqs: $name save:$saveName) => 
+    withMainContext do
+      let introFreeVars ←  xs.mapM (fun x => elabTerm x none)
+      let n : Nat <- t.isNatLit?.getD 0
+      let name ← name.getId
+      let loadState ← loadExprArr name
+      let prevState ← loadState.mapM $ fun e => mkAppN e introFreeVars
+      let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
+      let dynamics : Nat → Array Expr → Array Name → TermElabM (Array Expr) :=
+        fun m init names => eqIsles prevState 
+        (fun list => (iterAppRWTask m list names)) init.toList
+      let mvar ← getMainGoal
+      generateSeek n (some saveName.getId) introFreeVars none goalNames mvar dynamics
   | _ => Elab.throwIllFormedSyntax

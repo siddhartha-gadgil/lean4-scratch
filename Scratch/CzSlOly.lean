@@ -36,8 +36,27 @@ example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * n * n = m := by
 example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * (m * n * n) = m * m := by
     intros eq m n
     polyFind #⟨eq, m, n⟩ 2 save:mnn
+    eqDeduc #⟨eq, m, n⟩ 1 eqs:mnn
+
+example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → 
+            (m * n * n) * (m * n) = m * (m * n) := by
+    intros eq m n
+    polyFind #⟨eq, m, n⟩ 2 save:mnn
     eqDeduc #⟨eq, m, n⟩ 2 eqs:mnn
 
+example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → 
+            (m * n) * ((m * n) * n) = (m * n) * m := by
+    intros eq m n
+    polyFind #⟨eq, m, n, m *n⟩ 1 save:mmnn
+    eqDeduc #⟨eq, m, n, m * n⟩ 1 eqs:mnn save:mmnn2
+/-
+example : (∀ a b : M, (a * b) * b = a) →  (∀ a b : M, a * (a * b) = b) →  (m n: M)  → 
+            (m * n) * m = n := by
+    intros eq1 eq2 m n
+    polyFind #⟨eq1, eq2, m, n⟩ 2 save:mnn
+    eqDeduc #⟨eq1, eq2, m, n⟩ 2 eqs:mnn save:mnn2 -- max heartbeat here
+    polyFind #⟨eq1, eq2, m, n⟩ 1 load:mnn2
+-/
 
 #check fun (m: M) => HMul.hMul m 
 
