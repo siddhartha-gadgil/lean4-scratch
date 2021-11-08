@@ -415,11 +415,11 @@ def propogateEqualities (eqs: Array Expr) : TermElabM (Array Expr) :=
     logInfo m!"withLhs: {withLhs.size}"
     logInfo m!"withRhs: {withRhs.size}"
     let mut  accum := eqsymm
-    -- for (k, eqs1) in withRhs.toArray do
-    --   let eqs2 := (withLhs.find? k).getD #[]
-    --   for eq1 in eqs1 do
-    --     for eq2 in eqs2 do
-    --       accum ← accum.push (← mkAppM `Eq.trans #[eq1, eq2])
+    for (k, eqs1) in withRhs.toArray do
+      let eqs2 := (withLhs.find? k).getD #[]
+      for eq1 in eqs1 do
+        for eq2 in eqs2 do
+          accum ← accum.push (← mkAppM `Eq.trans #[eq1, eq2])
     return accum
 
 
