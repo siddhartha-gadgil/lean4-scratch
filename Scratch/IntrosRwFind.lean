@@ -178,6 +178,9 @@ syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩") (term ("load:" ident)?
           (n: Nat)(nameOpt: Option Name) : TacticM Unit :=
         withMainContext do
         let mvar ← getMainGoal
+        let lctx ← getLCtx
+        let fvars ← lctx.getFVars
+        logInfo m!"free variables from context: {fvars}"
         let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
         generateSeek n nameOpt introFreeVars initState goalNames mvar iterAppRWTask
 

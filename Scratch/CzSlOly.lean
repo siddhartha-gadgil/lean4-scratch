@@ -23,7 +23,7 @@ example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
             (m n : M) →  (m * n) * n = m := by
             introsRwFind 2
 
-set_option maxHeartbeats 500000
+set_option maxHeartbeats 1000000
 
 
 example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * n * n = m := by
@@ -33,6 +33,11 @@ example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
     (m n: M)  → m * n * n = m := by
         intros ax1 ax2 m n
         polyFind #⟨ax1, ax2, m, n⟩ 2
+
+example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
+    (m n: M)  → (m * n) * n * n = m * n := by
+        intros ax1 ax2 m n
+        polyFind #⟨ax1, ax2, m, n⟩ 2 %⟨ax1, ax2, m, n, m * n⟩
 
 example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * (m * n * n) = m * m := by
     intros ax m n
@@ -57,7 +62,7 @@ def eg : (∀ a b : M, (a * b) * b = a) → (m n: M)  →
 example : (∀ a b : M, (a * b) * b = a) →  (∀ a b : M, a * (a * b) = b) →  (m n: M)  → 
             (m * n) * m = n := by
     intros ax1 ax2 m n
-    polyFind #⟨ax1, ax2, m, n⟩ 2 save:mnn
+    polyFind #⟨ax1, ax2, m, n⟩ 2 %⟨ax1, ax2, m, n, m * n⟩ save:mnn
     eqDeduc #⟨ax1, ax2, m, n⟩ 2 eqs:mnn save:mnn2 
     exact sorry
 
