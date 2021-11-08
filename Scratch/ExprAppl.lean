@@ -27,7 +27,7 @@ def nameApplyOptM (f: Name) (x : Expr) : TermElabM (Option Expr) :=
         -- Elab.logInfo m!"from name, arg : {expr}"
         return some expr
       else
-      Elab.logWarning m!"not type correct : {expr}" 
+      Elab.logWarning m!"not type correct : {expr} = {f} ({x})" 
       return none
     catch e =>
         -- Elab.logInfo m!"failed from name, arg : 
@@ -43,7 +43,7 @@ def nameApplyPairOptM (f: Name) (x y: Expr) : TermElabM (Option Expr) :=
         -- Elab.logInfo m!"from name, arg : {expr}"
         return some expr
       else
-      Elab.logWarning m!"not type correct : {expr}" 
+      Elab.logWarning m!"not type correct : {expr} = {f}({x}, {y})" 
       return none
     catch e =>
         -- Elab.logInfo m!"failed from name, arg : 

@@ -23,7 +23,7 @@ example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
             (m n : M) →  (m * n) * n = m := by
             introsRwFind 2
 
-set_option maxHeartbeats 200000
+set_option maxHeartbeats 500000
 
 
 example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * n * n = m := by
@@ -53,14 +53,13 @@ def eg : (∀ a b : M, (a * b) * b = a) → (m n: M)  →
 
 #print eg
 #reduce @eg
-/-
+
 example : (∀ a b : M, (a * b) * b = a) →  (∀ a b : M, a * (a * b) = b) →  (m n: M)  → 
             (m * n) * m = n := by
-    intros eq1 eq2 m n
-    polyFind #⟨eq1, eq2, m, n⟩ 2 save:mnn
-    eqDeduc #⟨eq1, eq2, m, n⟩ 2 eqs:mnn save:mnn2 -- max heartbeat here
-    polyFind #⟨eq1, eq2, m, n⟩ 1 load:mnn2
--/
+    intros ax1 ax2 m n
+    polyFind #⟨ax1, ax2, m, n⟩ 2 save:mnn
+    eqDeduc #⟨ax1, ax2, m, n⟩ 2 eqs:mnn save:mnn2 
+    exact sorry
 
 #check fun (m: M) => HMul.hMul m 
 
