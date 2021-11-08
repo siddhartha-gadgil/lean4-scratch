@@ -67,11 +67,11 @@ def generateSeek(n: Nat)(nameOpt: Option Name)(introFreeVars: Array Expr)
           let mut evolved : Array Expr := #[]
           let mut evolvedTypes : Array Expr := #[]
           for e in baseEvolved do
-            let exp ← reduce e
+            let exp ← whnf $ ← reduce e
             unless evolved.contains exp do
               evolved :=  evolved.push exp
             let type ← inferType exp
-            let type ← reduce type
+            let type ← whnf $ ← reduce type
             unless evolvedTypes.contains type do
               evolvedTypes :=  evolvedTypes.push type
             -- unless ← evolved.anyM $ fun x =>  isDefEq x e do
@@ -246,7 +246,7 @@ syntax (name:= eqDeduc) "eqDeduc" ("#⟨" term,* "⟩") (term ("eqs:" ident)) ("
       let n : Nat <- t.isNatLit?.getD 0
       let name ← name.getId
       let loadState ← loadExprArr name
-      let prevState ← loadState.mapM $ fun e => reduce $ mkAppN e introFreeVars
+      let prevState ← loadState.mapM $ fun e => do whnf $ ← reduce $ mkAppN e introFreeVars
       let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
       let dynamics : Nat → Array Expr → Array Name → TermElabM (Array Expr) :=
         fun m init names => eqIsles prevState 
@@ -259,7 +259,7 @@ syntax (name:= eqDeduc) "eqDeduc" ("#⟨" term,* "⟩") (term ("eqs:" ident)) ("
       let n : Nat <- t.isNatLit?.getD 0
       let name ← name.getId
       let loadState ← loadExprArr name
-      let prevState ← loadState.mapM $ fun e => reduce $ mkAppN e introFreeVars
+      let prevState ← loadState.mapM $ fun e => do whnf $ ← reduce $ mkAppN e introFreeVars
       let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
       let dynamics : Nat → Array Expr → Array Name → TermElabM (Array Expr) :=
         fun m init names => eqIsles prevState 

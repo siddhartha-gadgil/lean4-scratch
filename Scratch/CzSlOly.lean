@@ -31,25 +31,25 @@ example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * n * n = m := by
 
 example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
     (m n: M)  → m * n * n = m := by
-        intros eq1 eq2 m n
-        polyFind #⟨eq1, eq2, m, n⟩ 2
+        intros ax1 ax2 m n
+        polyFind #⟨ax1, ax2, m, n⟩ 2
 
 example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * (m * n * n) = m * m := by
-    intros eq m n
-    polyFind #⟨eq, m, n⟩ 2 save:mnn
-    eqDeduc #⟨eq, m, n⟩ 1 eqs:mnn
+    intros ax m n
+    polyFind #⟨ax, m, n⟩ 2 save:mnn
+    eqDeduc #⟨ax, m, n⟩ 1 eqs:mnn
 
 example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → 
             (m * n * n) * (m * n) = m * (m * n) := by
-    intro eq m n
-    polyFind #⟨eq, m, n⟩ 2 save:mnn
-    eqDeduc #⟨eq, m, n⟩ 2 eqs:mnn
+    intro ax m n
+    polyFind #⟨ax, m, n⟩ 2 save:mnn
+    eqDeduc #⟨ax, m, n⟩ 2 eqs:mnn
 
 def eg : (∀ a b : M, (a * b) * b = a) → (m n: M)  → 
             (m * n) * ((m * n) * n) = (m * n) * m := by
-    intro eq m n
-    polyFind #⟨eq, m, n⟩ 2 save:mmnn
-    eqDeduc #⟨eq, m, n⟩ 2 eqs:mmnn save:mmnn2
+    intro ax m n
+    polyFind #⟨ax, m, n⟩ 2 save:mmnn
+    eqDeduc #⟨ax, m, n⟩ 2 eqs:mmnn save:mmnn2
 
 #print eg
 #reduce @eg
