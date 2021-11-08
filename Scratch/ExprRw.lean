@@ -381,3 +381,42 @@ def loadExprArr (name: Name) : TermElabM (Array Expr) := do
   match cache.find? name with
   | some es => return es
   | none => throwError m!"no cached expr for {name}"
+
+def propogateEqualities (eqs: Array Expr) : TermElabM (Array Expr) := 
+  do
+    let mut eqsymm : Array Expr := #[]
+    for eq in eqs do
+      let type ← inferType eq
+      if type.isEq then
+        unless eqsymm.contains eq do
+          eqsymm ← eqsymm.push eq
+        let seq ← whnf (← mkAppM `Eq.symm #[eq])
+        unless eqsymm.contains seq do
+          eqsymm ← eqsymm.push seq
+    let mut withLhs : HashMap Expr (Array Expr) := HashMap.empty
+    let mut withRhs : HashMap Expr (Array Expr) := HashMap.empty
+    for eq in eqsymm do
+      let type ← inferType eq
+      match type.eq? with
+      | none => ()
+      | some (α , lhs, rhs) =>
+        let lhsUp := 
+          match withLhs.getOp lhs with
+          | some arr => arr.push eq
+          | none => #[eq] 
+        withLhs ← withLhs.insert lhs lhsUp
+        let rhsUp := 
+          match withRhs.getOp rhs with
+          | some arr => arr.push eq
+          | none => #[eq] 
+        withRhs ← withRhs.insert rhs rhsUp
+    let mut  accum := eqsymm
+    for (k, eqs1) in withRhs.toArray do
+      let eqs2 := (withLhs.find? k).getD #[]
+      for eq1 in eqs1 do
+        for eq2 in eqs2 do
+          accum ← accum.push (← mkAppM `Eq.trans #[eq1, eq2])
+    return accum
+
+-- def propEg(M: Type)(a b c : M)(eq1 : a = b)(eq2 : a = c) :=
+--           propogateEqualities #[eq1, eq2]

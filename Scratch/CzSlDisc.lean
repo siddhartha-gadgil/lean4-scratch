@@ -15,6 +15,6 @@ theorem main_step : (∀ a b : M, (a * b) * b = a) →  (∀ a b : M, a * (a * b
         lookup #⟨ax1, ax2, m, n⟩ mnn2
     skip
     have lem2 : (m * n) * ((m * n) * n) = n := by
-        lookup #⟨ax1, ax2, m, n⟩ mnn
+        lookup #⟨ax1, ax2, m, n⟩ mnn2
     skip
     exact sorry

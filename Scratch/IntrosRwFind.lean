@@ -306,3 +306,29 @@ syntax (name:= lookup) "lookup" ("#⟨" term,* "⟩")  ident: tactic
             replaceMainGoal [mvar]
           return ()
   | _ =>  Elab.throwIllFormedSyntax
+
+syntax (name:= propeqs) "propeqs" ("#⟨" term,* "⟩")  ident: tactic
+@[tactic lookup] def propeqsImpl : Tactic :=
+  fun stx  =>
+  match stx with
+  | `(tactic| propeqs #⟨$[$xs:term],*⟩ $name) => 
+    withMainContext do
+      let introFreeVars ←  xs.mapM (fun x => elabTerm x none)
+      let name ← name.getId
+      let loadState ← loadExprArr name
+      let initState ← loadState.mapM $ fun e => do whnf $ ← reduce $ mkAppN e introFreeVars
+      let mvar ← getMainGoal
+      let target ← getMainTarget
+      let evolved ← propogateEqualities initState
+      let found ← evolved.findM? (fun e => do isDefEq (← inferType e) target)
+          match found with
+          | some x => 
+            do
+              logInfo m!"found : {x}"
+              logInfo m!"found-type: {← inferType x}"
+              assignExprMVar mvar x
+              replaceMainGoal []
+          | none => 
+            replaceMainGoal [mvar]
+          return ()
+  | _ =>  Elab.throwIllFormedSyntax
