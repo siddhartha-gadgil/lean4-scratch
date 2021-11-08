@@ -62,7 +62,25 @@ def generateSeek(n: Nat)(nameOpt: Option Name)(introFreeVars: Array Expr)
           let init := match initState with 
                       | some s => s 
                       | none => introFreeVars
-          let evolved ← dynamics n  init goalNames.toArray
+          let baseEvolved ← dynamics n  init goalNames.toArray
+          logInfo m!"evolved elements: {baseEvolved.size}"
+          let mut evolved : Array Expr := #[]
+          let mut evolvedTypes : Array Expr := #[]
+          for e in baseEvolved do
+            let exp ← reduce e
+            unless evolved.contains exp do
+              evolved :=  evolved.push exp
+            let type ← inferType exp
+            let type ← reduce type
+            unless evolvedTypes.contains type do
+              evolvedTypes :=  evolvedTypes.push type
+            -- unless ← evolved.anyM $ fun x =>  isDefEq x e do
+            --   evolved :=  evolved.push e
+            -- let type ← inferType e
+            -- unless ←  evolvedTypes.anyM $ fun x => isDefEq x type do
+            --   evolvedTypes :=  evolvedTypes.push type
+          logInfo m!"distinct evolved elements: {evolved.size}"
+          logInfo m!"distinct evolved types: {evolvedTypes.size}"
           let exported ← evolved.mapM (
                       fun e => mkLambdaFVars introFreeVars e) 
           let found ← evolved.findM? (fun e => do isDefEq (← inferType e) target)
@@ -131,7 +149,7 @@ syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩") (term ("load:" ident)?
       let n : Nat <- t.isNatLit?.getD 0
       let name ← name.getId
       let loadState ← loadExprArr name
-      let initState ← loadState.mapM $ fun e => mkAppN e introFreeVars
+      let initState ← loadState.mapM $ fun e => reduce (mkAppN e introFreeVars)
       -- logInfo m!"initial state loaded: {initState}"
       polyFindAux introFreeVars (some initState) n none
   | `(tactic|polyFind #⟨$[$xs:term],*⟩ $t load:$name save:$nameSave) => 
@@ -140,7 +158,7 @@ syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩") (term ("load:" ident)?
       let n : Nat <- t.isNatLit?.getD 0
       let name ← name.getId
       let loadState ← loadExprArr name
-      let initState ← loadState.mapM $ fun e => mkAppN e introFreeVars
+      let initState ← loadState.mapM $ fun e => reduce $ mkAppN e introFreeVars
       -- logInfo m!"initial state loaded: {initState}"
       polyFindAux introFreeVars (some initState) n (some nameSave.getId)
 
@@ -228,7 +246,7 @@ syntax (name:= eqDeduc) "eqDeduc" ("#⟨" term,* "⟩") (term ("eqs:" ident)) ("
       let n : Nat <- t.isNatLit?.getD 0
       let name ← name.getId
       let loadState ← loadExprArr name
-      let prevState ← loadState.mapM $ fun e => mkAppN e introFreeVars
+      let prevState ← loadState.mapM $ fun e => reduce $ mkAppN e introFreeVars
       let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
       let dynamics : Nat → Array Expr → Array Name → TermElabM (Array Expr) :=
         fun m init names => eqIsles prevState 
@@ -241,7 +259,7 @@ syntax (name:= eqDeduc) "eqDeduc" ("#⟨" term,* "⟩") (term ("eqs:" ident)) ("
       let n : Nat <- t.isNatLit?.getD 0
       let name ← name.getId
       let loadState ← loadExprArr name
-      let prevState ← loadState.mapM $ fun e => mkAppN e introFreeVars
+      let prevState ← loadState.mapM $ fun e => reduce $ mkAppN e introFreeVars
       let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
       let dynamics : Nat → Array Expr → Array Name → TermElabM (Array Expr) :=
         fun m init names => eqIsles prevState 
