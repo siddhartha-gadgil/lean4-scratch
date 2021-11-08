@@ -29,9 +29,10 @@ set_option maxHeartbeats 200000
 example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * n * n = m := by
     introsRwFind 2
 
-example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * n * n = m := by
-    intros eq m n
-    polyFind #⟨eq, m, n⟩ 2
+example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
+    (m n: M)  → m * n * n = m := by
+        intros eq1 eq2 m n
+        polyFind #⟨eq1, eq2, m, n⟩ 2
 
 example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * (m * n * n) = m * m := by
     intros eq m n
@@ -40,13 +41,13 @@ example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * (m * n * n) = m *
 
 example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → 
             (m * n * n) * (m * n) = m * (m * n) := by
-    intros eq m n
+    intro eq m n
     polyFind #⟨eq, m, n⟩ 2 save:mnn
     eqDeduc #⟨eq, m, n⟩ 2 eqs:mnn
 
 example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → 
             (m * n) * ((m * n) * n) = (m * n) * m := by
-    intros eq m n
+    intro eq m n
     polyFind #⟨eq, m, n⟩ 2 save:mmnn
     eqDeduc #⟨eq, m, n⟩ 2 eqs:mmnn save:mmnn2
 /-

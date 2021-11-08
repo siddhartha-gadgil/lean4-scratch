@@ -222,11 +222,7 @@ def eqIsles (eqs: Array Expr)(evolve : Array Expr → TermElabM (Array Expr))(in
             do
               Elab.logInfo m!"isles for: {α}; {lhs} = {rhs}"
               let fs ← isle α evolve init
-              -- Elab.logInfo m!"generated in isle: {← fs.mapM (fun e => whnf e)}"
-              -- Elab.logInfo m!"types from  isle: {← fs.mapM (fun e => do whnf (← inferType e))}"
               let shifted ← fs.filterMapM (fun f => eqCongrOpt f eq)
-              -- logInfo m!"example: {← mkAppM ``congrArg #[fs[0], eq]}"
-              -- Elab.logInfo m!"shifted by isle: {shifted}"
               return some shifted
           | _ => return none
         return res.join
@@ -258,18 +254,24 @@ def Array.inTermElab {α : Type}(l : Array (TermElabM α)) : TermElabM (Array α
   
 
 def rwAppCongStepTask : Array Expr → Array Name → Task (TermElabM (Array Expr)):=
-    fun l names =>
+    fun l names => 
+    let funcs :=  l.filterM $ fun e => 
+      let check: TermElabM Bool := do
+        let type ← inferType e
+        return type.isForall
+      check
     let ltml :=
       l.map $ fun arg => 
       Task.spawn $ fun _ =>
       do
-        let apps ← l.filterMapM (fun f => applyOptM f arg)
-          let nameApps ← names.filterMapM (fun name => nameApplyOptM name arg)
-          let nameAppPairsRaw ← 
-            Array.inTermElab (l.map (fun arg2 => names.filterMapM (fun name => 
-                    nameApplyPairOptM name arg arg2
-                    )))
-          let nameAppPairs := nameAppPairsRaw.join
+        let fns ← funcs
+        let apps ← fns.filterMapM (fun f => applyOptM f arg)
+        let nameApps ← names.filterMapM (fun name => nameApplyOptM name arg)
+        let nameAppPairsRaw ← 
+          Array.inTermElab (l.map (fun arg2 => names.filterMapM (fun name => 
+                  nameApplyPairOptM name arg arg2
+                  )))
+        let nameAppPairs := nameAppPairsRaw.join
         let type ← inferType arg
         if type.isEq
         then 
