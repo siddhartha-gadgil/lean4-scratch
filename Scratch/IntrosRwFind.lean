@@ -281,3 +281,28 @@ syntax (name:= eqDeduc) "eqDeduc" ("#⟨" term,* "⟩") (term ("eqs:" ident)) ("
       let mvar ← getMainGoal
       generateSeek n (some saveName.getId) introFreeVars introFreeVars goalNames mvar dynamics
   | _ => Elab.throwIllFormedSyntax
+
+syntax (name:= lookup) "lookup" ("#⟨" term,* "⟩")  ident: tactic
+@[tactic lookup] def lookupImpl : Tactic :=
+  fun stx  =>
+  match stx with
+  | `(tactic| lookup #⟨$[$xs:term],*⟩ $name) => 
+    withMainContext do
+      let introFreeVars ←  xs.mapM (fun x => elabTerm x none)
+      let name ← name.getId
+      let loadState ← loadExprArr name
+      let memo ← loadState.mapM $ fun e => do whnf $ ← reduce $ mkAppN e introFreeVars
+      let mvar ← getMainGoal
+      let target ← getMainTarget
+      let found ← memo.findM? (fun e => do isDefEq (← inferType e) target)
+          match found with
+          | some x => 
+            do
+              logInfo m!"found : {x}"
+              logInfo m!"found-type: {← inferType x}"
+              assignExprMVar mvar x
+              replaceMainGoal []
+          | none => 
+            replaceMainGoal [mvar]
+          return ()
+  | _ =>  Elab.throwIllFormedSyntax

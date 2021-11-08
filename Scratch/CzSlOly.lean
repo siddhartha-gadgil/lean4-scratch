@@ -59,13 +59,6 @@ def eg : (∀ a b : M, (a * b) * b = a) → (m n: M)  →
 #print eg
 #reduce @eg
 
-example : (∀ a b : M, (a * b) * b = a) →  (∀ a b : M, a * (a * b) = b) →  (m n: M)  → 
-            (m * n) * m = n := by
-    intros ax1 ax2 m n
-    polyFind #⟨ax1, ax2, m, n⟩ 2 %⟨ax1, ax2, m, n, m * n⟩ save:mnn
-    eqDeduc #⟨ax1, ax2, m, n⟩ 2 eqs:mnn save:mnn2 
-    exact sorry
-
 #check fun (m: M) => HMul.hMul m 
 
 #check @HMul.hMul
