@@ -3,7 +3,7 @@ universe u
 
 variable {M: Type u}[Mul M]
 
-set_option maxHeartbeats 1000000
+set_option maxHeartbeats 2000000
 
 theorem main_step : (∀ a b : M, (a * b) * b = a) →  (∀ a b : M, a * (a * b) = b) →  (m n: M)  → 
             (m * n) * m = n := by
@@ -17,4 +17,5 @@ theorem main_step : (∀ a b : M, (a * b) * b = a) →  (∀ a b : M, a * (a * b
     have lem2 : (m * n) * ((m * n) * n) = n := by
         lookup #⟨ax1, ax2, m, n⟩ mnn2
     skip
+    propeqs #⟨ax1, ax2, m, n⟩ mnn2
     exact sorry

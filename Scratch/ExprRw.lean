@@ -179,7 +179,7 @@ def iterRWPairsM(n : Nat)(mvarId : MVarId)(symm: Bool) : List Expr → MetaM (Li
        return ← rwPairsCuml mvarId symm prev
 
 def isle (type: Expr)(evolve : Array Expr → TermElabM (Array Expr))(init : List Expr)
-       (includePi : Bool := true): TermElabM (Array Expr) := 
+       (includePi : Bool := true)(excludeProofs: Bool := false): TermElabM (Array Expr) := 
     withLocalDecl Name.anonymous BinderInfo.default (type)  $ fun x => 
         do
           let l := x :: init
@@ -188,6 +188,7 @@ def isle (type: Expr)(evolve : Array Expr → TermElabM (Array Expr))(init : Lis
           let evc ← evolve init.toArray
           let mut evl : Array Expr := #[]
           for y in evb do
+            unless excludeProofs && ((← inferType y).isProp) do
             unless (evc.contains y) do 
               evl := evl.push y 
           let evt ← evl.filterM (fun x => liftMetaM (isType x))
@@ -221,7 +222,7 @@ def eqIsles (eqs: Array Expr)(evolve : Array Expr → TermElabM (Array Expr))(in
           | some (α, lhs, rhs) => 
             do
               Elab.logInfo m!"isles for: {α}; {lhs} = {rhs}"
-              let fs ← isle α evolve init
+              let fs ← isle α evolve init false true
               let shifted ← fs.filterMapM (fun f => eqCongrOpt f eq)
               return some shifted
           | _ => return none
@@ -395,6 +396,7 @@ def propogateEqualities (eqs: Array Expr) : TermElabM (Array Expr) :=
           eqsymm ← eqsymm.push seq
     let mut withLhs : HashMap Expr (Array Expr) := HashMap.empty
     let mut withRhs : HashMap Expr (Array Expr) := HashMap.empty
+    logInfo m!"eqsymm: {eqsymm.size}"
     for eq in eqsymm do
       let type ← inferType eq
       match type.eq? with
@@ -410,13 +412,14 @@ def propogateEqualities (eqs: Array Expr) : TermElabM (Array Expr) :=
           | some arr => arr.push eq
           | none => #[eq] 
         withRhs ← withRhs.insert rhs rhsUp
+    logInfo m!"withLhs: {withLhs.size}"
+    logInfo m!"withRhs: {withRhs.size}"
     let mut  accum := eqsymm
-    for (k, eqs1) in withRhs.toArray do
-      let eqs2 := (withLhs.find? k).getD #[]
-      for eq1 in eqs1 do
-        for eq2 in eqs2 do
-          accum ← accum.push (← mkAppM `Eq.trans #[eq1, eq2])
+    -- for (k, eqs1) in withRhs.toArray do
+    --   let eqs2 := (withLhs.find? k).getD #[]
+    --   for eq1 in eqs1 do
+    --     for eq2 in eqs2 do
+    --       accum ← accum.push (← mkAppM `Eq.trans #[eq1, eq2])
     return accum
 
--- def propEg(M: Type)(a b c : M)(eq1 : a = b)(eq2 : a = c) :=
---           propogateEqualities #[eq1, eq2]
+

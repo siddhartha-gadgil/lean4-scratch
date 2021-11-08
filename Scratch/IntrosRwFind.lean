@@ -308,7 +308,7 @@ syntax (name:= lookup) "lookup" ("#⟨" term,* "⟩")  ident: tactic
   | _ =>  Elab.throwIllFormedSyntax
 
 syntax (name:= propeqs) "propeqs" ("#⟨" term,* "⟩")  ident: tactic
-@[tactic lookup] def propeqsImpl : Tactic :=
+@[tactic propeqs] def propeqsImpl : Tactic :=
   fun stx  =>
   match stx with
   | `(tactic| propeqs #⟨$[$xs:term],*⟩ $name) => 
