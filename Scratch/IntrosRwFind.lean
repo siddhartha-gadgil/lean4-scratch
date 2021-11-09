@@ -129,7 +129,7 @@ syntax (name:= introsRwFind) "introsRwFind" (term ("save:" ident)?)?: tactic
         logInfo m!"goalNames : {goalNames}"
         generateSeek n nameOpt introFreeVars goalNames codmvar iterAppRWTask
 
-syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩") (term ("load:" ident)? 
+syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩")? (term ("load:" ident)? 
       ("%⟨" term,* "⟩")? ("save:" ident)?)?: tactic
 @[tactic polyFind] def polyfindImpl : Tactic :=
   fun stx  =>
@@ -151,7 +151,6 @@ syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩") (term ("load:" ident)?
       polyFindAux  introFreeVars n (some name)
   | `(tactic|polyFind #⟨$[$xs:term],*⟩ $t load:$name) => 
     withMainContext do
-      let introFreeVars ←  xs.mapM (fun x => elabTerm x none)
       let n : Nat <- t.isNatLit?.getD 0
       let name ← name.getId
       let loadState ← loadExprArr name
@@ -164,7 +163,6 @@ syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩") (term ("load:" ident)?
       polyFindAux (initState) n none
   | `(tactic|polyFind #⟨$[$xs:term],*⟩ $t load:$name save:$nameSave) => 
     withMainContext do
-      let introFreeVars ←  xs.mapM (fun x => elabTerm x none)
       let n : Nat <- t.isNatLit?.getD 0
       let name ← name.getId
       let loadState ← loadExprArr name
@@ -173,20 +171,6 @@ syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩") (term ("load:" ident)?
       let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
       let fvars := fvIds.map mkFVar
       let initState ← loadState.mapM $ fun e => reduce $ mkAppN e fvars
-      -- logInfo m!"initial state loaded: {initState}"
-      polyFindAux  (initState) n (some nameSave.getId)
-  | `(tactic|polyFind #⟨$[$xs:term],*⟩ $t %⟨$[$ys:term],*⟩) => 
-    withMainContext do
-      let introFreeVars ←  xs.mapM (fun x => elabTerm x none)
-      let n : Nat <- t.isNatLit?.getD 0
-      let initState ← ys.mapM (fun x => elabTerm x none)
-      -- logInfo m!"initial state loaded: {initState}"
-      polyFindAux  (initState) n none
-  | `(tactic|polyFind #⟨$[$xs:term],*⟩ $t %⟨$[$ys:term],*⟩ save:$nameSave) => 
-    withMainContext do
-      let introFreeVars ←  xs.mapM (fun x => elabTerm x none)
-      let n : Nat <- t.isNatLit?.getD 0
-      let initState ← ys.mapM (fun x => elabTerm x none)
       -- logInfo m!"initial state loaded: {initState}"
       polyFindAux  (initState) n (some nameSave.getId)
   | _ => Elab.throwIllFormedSyntax

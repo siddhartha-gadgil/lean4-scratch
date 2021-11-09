@@ -37,7 +37,7 @@ example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
 example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
     (m n: M)  → (m * n) * n * n = m * n := by
         intros ax1 ax2 m n
-        polyFind #⟨ax1, ax2, m, n⟩ 2 %⟨ax1, ax2, m, n, m * n⟩
+        polyFind #⟨ax1, ax2, m, n, m * n⟩ 2 
 
 example : (∀ a b : M, (a * b) * b = a) → (m n: M)  → m * (m * n * n) = m * m := by
     intros ax m n
