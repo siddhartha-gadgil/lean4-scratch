@@ -221,7 +221,7 @@ def eqIsles (eqs: Array Expr)(evolve : Array Expr → TermElabM (Array Expr))(in
           match (← inferType eq).eq? with
           | some (α, lhs, rhs) => 
             do
-              Elab.logInfo m!"isles for: {α}; {lhs} = {rhs}"
+              -- Elab.logInfo m!"isles for: {α}; {lhs} = {rhs}"
               let fs ← isle α evolve init false true
               let shifted ← fs.filterMapM (fun f => eqCongrOpt f eq)
               return some shifted
@@ -383,7 +383,7 @@ def loadExprArr (name: Name) : TermElabM (Array Expr) := do
   | some es => return es
   | none => throwError m!"no cached expr for {name}"
 
-def propogateEqualities (eqs: Array Expr) : TermElabM (Array Expr) := 
+def propagateEqualities (eqs: Array Expr) : TermElabM (Array Expr) := 
   do
     let mut eqsymm : Array Expr := #[]
     for eq in eqs do
@@ -396,7 +396,7 @@ def propogateEqualities (eqs: Array Expr) : TermElabM (Array Expr) :=
           eqsymm ← eqsymm.push seq
     let mut withLhs : HashMap Expr (Array Expr) := HashMap.empty
     let mut withRhs : HashMap Expr (Array Expr) := HashMap.empty
-    logInfo m!"eqsymm: {eqsymm.size}"
+    -- logInfo m!"eqsymm: {eqsymm.size}"
     for eq in eqsymm do
       let type ← inferType eq
       match type.eq? with
@@ -412,8 +412,8 @@ def propogateEqualities (eqs: Array Expr) : TermElabM (Array Expr) :=
           | some arr => arr.push eq
           | none => #[eq] 
         withRhs ← withRhs.insert rhs rhsUp
-    logInfo m!"withLhs: {withLhs.size}"
-    logInfo m!"withRhs: {withRhs.size}"
+    -- logInfo m!"withLhs: {withLhs.size}"
+    -- logInfo m!"withRhs: {withRhs.size}"
     let mut  accum := eqsymm
     for (k, eqs1) in withRhs.toArray do
       let eqs2 := (withLhs.find? k).getD #[]
@@ -422,4 +422,45 @@ def propogateEqualities (eqs: Array Expr) : TermElabM (Array Expr) :=
           accum ← accum.push (← mkAppM `Eq.trans #[eq1, eq2])
     return accum
 
-
+def propagateEqualitiesTask (eqs: Array Expr) : TermElabM (Array Expr) := 
+  do
+    let mut eqsymm : Array Expr := #[]
+    for eq in eqs do
+      let type ← inferType eq
+      if type.isEq then
+        unless eqsymm.contains eq do
+          eqsymm ← eqsymm.push eq
+        let seq ← whnf (← mkAppM `Eq.symm #[eq])
+        unless eqsymm.contains seq do
+          eqsymm ← eqsymm.push seq
+    let mut withLhs : HashMap Expr (Array Expr) := HashMap.empty
+    let mut withRhs : HashMap Expr (Array Expr) := HashMap.empty
+    -- logInfo m!"eqsymm: {eqsymm.size}"
+    for eq in eqsymm do
+      let type ← inferType eq
+      match type.eq? with
+      | none => ()
+      | some (α , lhs, rhs) =>
+        let lhsUp := 
+          match withLhs.getOp lhs with
+          | some arr => arr.push eq
+          | none => #[eq] 
+        withLhs ← withLhs.insert lhs lhsUp
+        let rhsUp := 
+          match withRhs.getOp rhs with
+          | some arr => arr.push eq
+          | none => #[eq] 
+        withRhs ← withRhs.insert rhs rhsUp
+    -- logInfo m!"withLhs: {withLhs.size}"
+    -- logInfo m!"withRhs: {withRhs.size}"
+    let mut  accum := eqsymm
+    let ltml : Array (Task (TermElabM (Array Expr))) := 
+      withRhs.toArray.map $ fun (k, eqs1) => 
+        Task.spawn $ fun _ => do
+          let eqs2 := (withLhs.find? k).getD #[]
+          eqs2.concatMapM $ fun eq2 => do
+            eqs1.mapM $ fun eq1 => mkAppM `Eq.trans #[eq1, eq2]
+    let tlml := Task.array ltml 
+    let tml := tlml.map $ fun lst => 
+      (Array.inTermElab lst).map (fun ll => (Array.join ll))
+    tml.get

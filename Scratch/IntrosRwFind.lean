@@ -61,32 +61,32 @@ def generateSeek(n: Nat)(nameOpt: Option Name)(introFreeVars: Array Expr)
           let target ←  getMVarType mvar
           let init := initState
           let baseEvolved ← dynamics n  init goalNames.toArray
-          logInfo m!"evolved elements: {baseEvolved.size}"
+          -- logInfo m!"evolved elements: {baseEvolved.size}"
           let mut evolved : Array Expr := #[]
-          let mut evolvedTypes : Array Expr := #[]
+          -- let mut evolvedTypes : Array Expr := #[]
           for e in baseEvolved do
             let exp ← whnf $ ← reduce e
             unless evolved.contains exp do
               evolved :=  evolved.push exp
             let type ← inferType exp
             let type ← whnf $ ← reduce type
-            unless evolvedTypes.contains type do
-              evolvedTypes :=  evolvedTypes.push type
+            -- unless evolvedTypes.contains type do
+            --   evolvedTypes :=  evolvedTypes.push type
             -- unless ← evolved.anyM $ fun x =>  isDefEq x e do
             --   evolved :=  evolved.push e
             -- let type ← inferType e
             -- unless ←  evolvedTypes.anyM $ fun x => isDefEq x type do
             --   evolvedTypes :=  evolvedTypes.push type
-          logInfo m!"distinct evolved elements: {evolved.size}"
-          logInfo m!"distinct evolved types: {evolvedTypes.size}"
+          -- logInfo m!"distinct evolved elements: {evolved.size}"
+          -- logInfo m!"distinct evolved types: {evolvedTypes.size}"
           let exported ← evolved.mapM (
                       fun e => mkLambdaFVars introFreeVars e) 
           let found ← evolved.findM? (fun e => do isDefEq (← inferType e) target)
           match found with
           | some x => 
             do
-              logInfo m!"found : {x}"
-              logInfo m!"found-type: {← inferType x}"
+              -- logInfo m!"found : {x}"
+              -- logInfo m!"found-type: {← inferType x}"
               assignExprMVar mvar x
               replaceMainGoal []
           | none => 
@@ -180,7 +180,7 @@ syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩") (term ("load:" ident)?
         let mvar ← getMainGoal
         let lctx ← getLCtx
         let fvars ← lctx.getFVars
-        logInfo m!"free variables from context: {fvars}"
+        -- logInfo m!"free variables from context: {fvars}"
         let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
         generateSeek n nameOpt introFreeVars initState goalNames mvar iterAppRWTask
 
@@ -298,8 +298,8 @@ syntax (name:= lookup) "lookup" ("#⟨" term,* "⟩")  ident: tactic
           match found with
           | some x => 
             do
-              logInfo m!"found : {x}"
-              logInfo m!"found-type: {← inferType x}"
+              -- logInfo m!"found : {x}"
+              -- logInfo m!"found-type: {← inferType x}"
               assignExprMVar mvar x
               replaceMainGoal []
           | none => 
@@ -319,7 +319,7 @@ syntax (name:= propeqs) "propeqs" ("#⟨" term,* "⟩")  ident: tactic
       let initState ← loadState.mapM $ fun e => do whnf $ ← reduce $ mkAppN e introFreeVars
       let mvar ← getMainGoal
       let target ← getMainTarget
-      let evolved ← propogateEqualities initState
+      let evolved ← propagateEqualities initState
       let found ← evolved.findM? (fun e => do isDefEq (← inferType e) target)
           match found with
           | some x => 
