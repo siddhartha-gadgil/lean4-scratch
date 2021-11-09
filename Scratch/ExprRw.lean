@@ -394,6 +394,42 @@ def propagateEqualities (eqs: Array Expr) : TermElabM (Array Expr) :=
         let seq ← whnf (← mkAppM `Eq.symm #[eq])
         unless eqsymm.contains seq do
           eqsymm ← eqsymm.push seq
+    let mut withLhs : HashMap Expr (Array (Expr × Expr)) := HashMap.empty
+    for eq in eqsymm do
+      let type ← inferType eq
+      match type.eq? with
+      | none => ()
+      | some (α , lhs, rhs) =>
+        let lhsUp := 
+          match withLhs.getOp lhs with
+          | some arr => arr.push (eq, rhs)
+          | none => #[(eq, rhs)] 
+        withLhs ← withLhs.insert lhs lhsUp
+    let mut  accum := eqsymm
+    for eq1 in eqsymm do
+      let type ← inferType eq1
+      match type.eq? with
+      | none => ()
+      | some (α , lhs, rhs) =>
+        let eqs2 := (withLhs.getOp rhs).getD #[]
+        for (eq2, rhs2) in eqs2 do
+        unless (rhs2 == lhs) do
+          let eq3 ←  mkAppM `Eq.trans #[eq1, eq2]
+          accum ← accum.push eq3
+    return accum
+
+
+def propagateEqualitiesOld (eqs: Array Expr) : TermElabM (Array Expr) := 
+  do
+    let mut eqsymm : Array Expr := #[]
+    for eq in eqs do
+      let type ← inferType eq
+      if type.isEq then
+        unless eqsymm.contains eq do
+          eqsymm ← eqsymm.push eq
+        let seq ← whnf (← mkAppM `Eq.symm #[eq])
+        unless eqsymm.contains seq do
+          eqsymm ← eqsymm.push seq
     let mut withLhs : HashMap Expr (Array Expr) := HashMap.empty
     let mut withRhs : HashMap Expr (Array Expr) := HashMap.empty
     -- logInfo m!"eqsymm: {eqsymm.size}"
