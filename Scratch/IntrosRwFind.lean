@@ -129,7 +129,7 @@ syntax (name:= introsRwFind) "introsRwFind" (term ("save:" ident)?)?: tactic
         logInfo m!"goalNames : {goalNames}"
         generateSeek n nameOpt introFreeVars goalNames codmvar iterAppRWTask
 
-syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩")? (term ("load:" ident)? 
+syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩")? (("load:" ident)? term
       ("%⟨" term,* "⟩")? ("save:" ident)?)?: tactic
 @[tactic polyFind] def polyfindImpl : Tactic :=
   fun stx  =>
@@ -149,7 +149,7 @@ syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩")? (term ("load:" ident)
       let n : Nat <- t.isNatLit?.getD 0
       let name ← name.getId
       polyFindAux  introFreeVars n (some name)
-  | `(tactic|polyFind #⟨$[$xs:term],*⟩ $t load:$name) => 
+  | `(tactic|polyFind  load:$name $t) => 
     withMainContext do
       let n : Nat <- t.isNatLit?.getD 0
       let name ← name.getId
@@ -161,7 +161,7 @@ syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩")? (term ("load:" ident)
       let initState ← loadState.mapM $ fun e => reduce (mkAppN e fvars)
       -- logInfo m!"initial state loaded: {initState}"
       polyFindAux (initState) n none
-  | `(tactic|polyFind #⟨$[$xs:term],*⟩ $t load:$name save:$nameSave) => 
+  | `(tactic|polyFind load:$name $t save:$nameSave) => 
     withMainContext do
       let n : Nat <- t.isNatLit?.getD 0
       let name ← name.getId
@@ -248,7 +248,7 @@ example {μ : Type}{mul: μ → μ → μ}:
       eₗ = eᵣ := by
         intros eₗ eᵣ lid rid
         polyFind #⟨eₗ, eᵣ, lid, rid⟩ 1 save:poly1
-        polyFind #⟨eₗ, eᵣ, lid, rid⟩ 1 load:poly1 save:poly2
+        polyFind load:poly1 1 save:poly2
 
 -- deducing from equalities
 
