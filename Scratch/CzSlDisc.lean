@@ -10,4 +10,4 @@ theorem main_step : (∀ a b : M, (a * b) * b = a) →  (∀ a b : M, a * (a * b
     intros ax1 ax2 m n
     polyFind #⟨ax1, ax2, m, n⟩ 2 %⟨ax1, ax2, m, n, m * n⟩ save:mnn
     eqDeduc #⟨ax1, ax2, m, n⟩ 2 eqs:mnn save:mnn2 
-    propeqs #⟨ax1, ax2, m, n⟩ mnn2
+    propeqs  mnn2
