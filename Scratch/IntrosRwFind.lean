@@ -120,9 +120,11 @@ syntax (name:= introsRwFind) "introsRwFind" (num ("save:" ident)?)?: tactic
         logInfo m!"goalNames : {goalNames}"
         generateSeek n saveOpt introFreeVars goalNames codmvar iterAppRWTask
 
+declare_syntax_cat init_source 
+syntax "#⟨" term,* "⟩" : init_source
+syntax "load:" ident : init_source
 
-
-syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩")? ("load:" ident)? (num)?
+syntax (name:= polyFind) "polyFind" init_source (num)?
       ("save:" ident)?: tactic
 @[tactic polyFind] def polyfindImpl : Tactic :=
   fun stx  =>
@@ -131,6 +133,12 @@ syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩")? ("load:" ident)? (num
     withMainContext do
     let initState ←  xs.mapM (fun x => elabTerm x none)
     polyFindAux  initState 1 none
+  -- | `(tactic| polyFind $s:init_source $t:numLit) =>
+  --   withMainContext do
+  --   logInfo m!"init_source : {s}"
+  --   let initState ←  getInit s
+  --   let n : Nat <- t.isNatLit?.getD 0
+  --   polyFindAux  initState n none
   | `(tactic|polyFind #⟨$[$xs:term],*⟩ $t:numLit) => 
     withMainContext do
       let initState ←  xs.mapM (fun x => elabTerm x none)
@@ -162,6 +170,18 @@ syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩")? ("load:" ident)? (num
         let mvar ← getMainGoal
         let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
         generateSeek n saveOpt  initState goalNames mvar iterAppRWTask
+      getInit (stx: Syntax) : TacticM (Array Expr) :=
+        match stx with
+        | `(init_source|#⟨$[$xs:term],*⟩) => 
+          withMainContext do
+          let initState ←  xs.mapM (fun x => elabTerm x none)
+          return initState
+        | `(init_source|load:$name:ident) =>
+          loadedState name.getId
+        | s => do
+          logInfo m!"unexpected syntax {s}" 
+          return #[]
+          -- throwIllFormedSyntax
       loadedState (name : Name) : TacticM (Array Expr) := 
         withMainContext do
         let loadState ← loadExprArr name
