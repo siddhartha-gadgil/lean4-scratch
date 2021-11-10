@@ -500,3 +500,29 @@ def propagateEqualitiesTask (eqs: Array Expr) : TermElabM (Array Expr) :=
     let tml := tlml.map $ fun lst => 
       (Array.inTermElab lst).map (fun ll => (Array.join ll))
     tml.get
+
+def typeVariables (e: Expr) : (List Name) × (List Name) :=
+  match e with
+  | Expr.forallE n d b c =>
+      if c.binderInfo.isExplicit then
+        let (l1, l2) := typeVariables b
+        (n :: l1, l2)
+      else
+        let (l1, l2) := typeVariables b
+        (l1, n :: l2)
+  | _ => ([], [])
+
+syntax(name:= goalVariables) "goalVariables" : tactic 
+@[tactic goalVariables] def goalVariablesImp : Tactic :=
+  fun stx => 
+  withMainContext do
+    let (l1, l2) := typeVariables (← getMainTarget)
+    logInfo m!"target: {← getMainTarget}"
+    logInfo m!"explicit variables: {l1}"
+    logInfo m!"implicit variables: {l2}" 
+    let lctx ← getLCtx
+    let fvarIds ← lctx.getFVarIds
+    let fvars := fvarIds.map mkFVar
+    logInfo m!"free variables from context: {fvars}"
+    logInfo m!"free variable types from context: {← fvars.mapM $ fun x => inferType x}"
+    return ()
