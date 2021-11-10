@@ -120,8 +120,10 @@ syntax (name:= introsRwFind) "introsRwFind" (num ("save:" ident)?)?: tactic
         logInfo m!"goalNames : {goalNames}"
         generateSeek n saveOpt introFreeVars goalNames codmvar iterAppRWTask
 
-syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩")? (("load:" ident)? num
-      ("save:" ident)?)?: tactic
+
+
+syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩")? ("load:" ident)? (num)?
+      ("save:" ident)?: tactic
 @[tactic polyFind] def polyfindImpl : Tactic :=
   fun stx  =>
   match stx with
