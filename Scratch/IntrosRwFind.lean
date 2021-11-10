@@ -129,39 +129,20 @@ syntax (name:= polyFind) "polyFind" init_source (num)?
 @[tactic polyFind] def polyfindImpl : Tactic :=
   fun stx  =>
   match stx with
-  | `(tactic|polyFind #⟨$[$xs:term],*⟩) => 
+  | `(tactic|polyFind $s:init_source) => 
     withMainContext do
-    let initState ←  xs.mapM (fun x => elabTerm x none)
+    let initState ←  getInit s
     polyFindAux  initState 1 none
-  -- | `(tactic| polyFind $s:init_source $t:numLit) =>
-  --   withMainContext do
-  --   logInfo m!"init_source : {s}"
-  --   let initState ←  getInit s
-  --   let n : Nat <- t.isNatLit?.getD 0
-  --   polyFindAux  initState n none
-  | `(tactic|polyFind #⟨$[$xs:term],*⟩ $t:numLit) => 
+  | `(tactic| polyFind $s:init_source $t:numLit save:$name) =>
     withMainContext do
-      let initState ←  xs.mapM (fun x => elabTerm x none)
-      let n : Nat <- t.isNatLit?.getD 0
-      polyFindAux  initState n none
-  | `(tactic|polyFind #⟨$[$xs:term],*⟩ $t:numLit save:$name) => 
+    let initState ←  getInit s
+    let n : Nat <- t.isNatLit?.getD 0
+    polyFindAux  initState n (some name.getId)
+  | `(tactic| polyFind $s:init_source $t:numLit) =>
     withMainContext do
-      let initState ←  xs.mapM (fun x => elabTerm x none)
-      let n : Nat <- t.isNatLit?.getD 0
-      let name ← name.getId
-      polyFindAux  initState n (some name)
-  | `(tactic|polyFind  load:$name $t:numLit) => 
-    withMainContext do
-      let n : Nat <- t.isNatLit?.getD 0
-      let name ← name.getId
-      let initState ← loadedState name
-      polyFindAux initState n none
-  | `(tactic|polyFind load:$name $t:numLit save:$nameSave) => 
-    withMainContext do
-      let n : Nat <- t.isNatLit?.getD 0
-      let name ← name.getId      
-      let initState ← loadedState name
-      polyFindAux  initState n (some nameSave.getId)
+    let initState ←  getInit s
+    let n : Nat <- t.isNatLit?.getD 0
+    polyFindAux  initState n none
   | _ => Elab.throwIllFormedSyntax
       where 
       polyFindAux  (initState: Array Expr) 
