@@ -127,55 +127,47 @@ syntax (name:= polyFind) "polyFind" ("#⟨" term,* "⟩")? (("load:" ident)? num
   match stx with
   | `(tactic|polyFind #⟨$[$xs:term],*⟩) => 
     withMainContext do
-    let introFreeVars ←  xs.mapM (fun x => elabTerm x none)
-    polyFindAux  introFreeVars 1 none
+    let initState ←  xs.mapM (fun x => elabTerm x none)
+    polyFindAux  initState 1 none
   | `(tactic|polyFind #⟨$[$xs:term],*⟩ $t:numLit) => 
     withMainContext do
-      let introFreeVars ←  xs.mapM (fun x => elabTerm x none)
+      let initState ←  xs.mapM (fun x => elabTerm x none)
       let n : Nat <- t.isNatLit?.getD 0
-      polyFindAux  introFreeVars n none
+      polyFindAux  initState n none
   | `(tactic|polyFind #⟨$[$xs:term],*⟩ $t:numLit save:$name) => 
     withMainContext do
-      let introFreeVars ←  xs.mapM (fun x => elabTerm x none)
+      let initState ←  xs.mapM (fun x => elabTerm x none)
       let n : Nat <- t.isNatLit?.getD 0
       let name ← name.getId
-      polyFindAux  introFreeVars n (some name)
+      polyFindAux  initState n (some name)
   | `(tactic|polyFind  load:$name $t:numLit) => 
     withMainContext do
       let n : Nat <- t.isNatLit?.getD 0
       let name ← name.getId
-      let loadState ← loadExprArr name
-      let lctx ← getLCtx
-      let fvarIds ← lctx.getFVarIds
-      let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
-      let fvars := fvIds.map mkFVar
-      let initState ← loadState.mapM $ fun e => reduce (mkAppN e fvars)
-      -- logInfo m!"initial state loaded: {initState}"
-      polyFindAux (initState) n none
+      let initState ← loadedState name
+      polyFindAux initState n none
   | `(tactic|polyFind load:$name $t:numLit save:$nameSave) => 
     withMainContext do
       let n : Nat <- t.isNatLit?.getD 0
-      let name ← name.getId
-      let loadState ← loadExprArr name
-      let lctx ← getLCtx
-      let fvarIds ← lctx.getFVarIds
-      let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
-      let fvars := fvIds.map mkFVar
-      let initState ← loadState.mapM $ fun e => reduce $ mkAppN e fvars
-      -- logInfo m!"initial state loaded: {initState}"
-      polyFindAux  (initState) n (some nameSave.getId)
+      let name ← name.getId      
+      let initState ← loadedState name
+      polyFindAux  initState n (some nameSave.getId)
   | _ => Elab.throwIllFormedSyntax
-      where polyFindAux  (initState: Array Expr) 
+      where 
+      polyFindAux  (initState: Array Expr) 
           (n: Nat)(saveOpt: Option Name) : TacticM Unit :=
         withMainContext do
         let mvar ← getMainGoal
+        let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
+        generateSeek n saveOpt  initState goalNames mvar iterAppRWTask
+      loadedState (name : Name) : TacticM (Array Expr) := 
+        withMainContext do
+        let loadState ← loadExprArr name
         let lctx ← getLCtx
         let fvarIds ← lctx.getFVarIds
         let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
         let fvars := fvIds.map mkFVar
-        logInfo m!"free variables from context: {fvars}"
-        let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
-        generateSeek n saveOpt  initState goalNames mvar iterAppRWTask
+        loadState.mapM $ fun e => reduce (mkAppN e fvars)
 
 def modusPonens : {α β : Type} →  α → (α → β) → β := by
       introsRwFind 1 save:blah
@@ -257,7 +249,7 @@ syntax (name:= eqDeduc) "eqDeduc" ("#⟨" term,* "⟩") (num ("eqs:" ident)) ("s
       let fvarIds ← lctx.getFVarIds
       let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
       let fvars := fvIds.map mkFVar
-      let prevState ← loadState.mapM $ fun e => do whnf $ ← reduce $ mkAppN e fvars
+      let prevState ← loadedState name
       let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
       let dynamics : Nat → Array Expr → Array Name → TermElabM (Array Expr) :=
         fun m init names => eqIsles prevState 
@@ -274,7 +266,7 @@ syntax (name:= eqDeduc) "eqDeduc" ("#⟨" term,* "⟩") (num ("eqs:" ident)) ("s
       let fvarIds ← lctx.getFVarIds
       let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
       let fvars := fvIds.map mkFVar
-      let prevState ← loadState.mapM $ fun e => do whnf $ ← reduce $ mkAppN e fvars
+      let prevState ← loadedState name
       let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
       let dynamics : Nat → Array Expr → Array Name → TermElabM (Array Expr) :=
         fun m init names => eqIsles prevState 
@@ -282,6 +274,15 @@ syntax (name:= eqDeduc) "eqDeduc" ("#⟨" term,* "⟩") (num ("eqs:" ident)) ("s
       let mvar ← getMainGoal
       generateSeek n (some saveName.getId) introFreeVars goalNames mvar dynamics
   | _ => Elab.throwIllFormedSyntax
+  where
+    loadedState (name: Name) : TacticM (Array Expr) := 
+    withMainContext do
+      let loadState ← loadExprArr name
+      let lctx ← getLCtx
+      let fvarIds ← lctx.getFVarIds
+      let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
+      let fvars := fvIds.map mkFVar
+      loadState.mapM $ fun e => do whnf $ ← reduce $ mkAppN e fvars
 
 syntax (name:= lookup) "lookup"  ident: tactic
 @[tactic lookup] def lookupImpl : Tactic :=
