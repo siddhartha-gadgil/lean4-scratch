@@ -247,11 +247,6 @@ syntax (name:= eqDeduc) "eqDeduc" ("#⟨" term,* "⟩") (num ("eqs:" ident)) ("s
       let introFreeVars ←  xs.mapM (fun x => elabTerm x none)
       let n : Nat <- t.isNatLit?.getD 0
       let name ← name.getId
-      let loadState ← loadExprArr name
-      let lctx ← getLCtx
-      let fvarIds ← lctx.getFVarIds
-      let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
-      let fvars := fvIds.map mkFVar
       let prevState ← loadedState name
       let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
       let dynamics : Nat → Array Expr → Array Name → TermElabM (Array Expr) :=
@@ -264,11 +259,6 @@ syntax (name:= eqDeduc) "eqDeduc" ("#⟨" term,* "⟩") (num ("eqs:" ident)) ("s
       let introFreeVars ←  xs.mapM (fun x => elabTerm x none)
       let n : Nat <- t.isNatLit?.getD 0
       let name ← name.getId
-      let loadState ← loadExprArr name
-      let lctx ← getLCtx
-      let fvarIds ← lctx.getFVarIds
-      let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
-      let fvars := fvIds.map mkFVar
       let prevState ← loadedState name
       let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
       let dynamics : Nat → Array Expr → Array Name → TermElabM (Array Expr) :=
