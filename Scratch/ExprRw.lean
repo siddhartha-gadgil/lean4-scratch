@@ -383,6 +383,16 @@ def loadExprArr (name: Name) : TermElabM (Array Expr) := do
   | some es => return es
   | none => throwError m!"no cached expr for {name}"
 
+def distinctTypes (exps: Array Expr) : TermElabM (Array Expr) := do
+  let mut types : Array Expr := Array.empty
+  let mut distinct : Array Expr := Array.empty
+  for expr in exps do
+    let type ← inferType expr
+    unless (types.contains type) do
+      types := types.push type
+      distinct := distinct.push expr
+  return distinct
+
 def propagateEqualities (eqs: Array Expr) : TermElabM (Array Expr) := 
   do
     let mut eqsymm : Array Expr := #[]
@@ -394,6 +404,8 @@ def propagateEqualities (eqs: Array Expr) : TermElabM (Array Expr) :=
         let seq ← whnf (← mkAppM `Eq.symm #[eq])
         unless eqsymm.contains seq do
           eqsymm ← eqsymm.push seq
+    logInfo m!"symmetrize equalities for propagation: {← IO.monoMsNow}"
+    logInfo m!"got:{eqsymm.size}"
     let mut withLhs : HashMap Expr (Array (Expr × Expr)) := HashMap.empty
     for eq in eqsymm do
       let type ← inferType eq
@@ -405,7 +417,8 @@ def propagateEqualities (eqs: Array Expr) : TermElabM (Array Expr) :=
           | some arr => arr.push (eq, rhs)
           | none => #[(eq, rhs)] 
         withLhs ← withLhs.insert lhs lhsUp
-    let mut  accum := eqsymm
+    logInfo m!"equality map generated: {← IO.monoMsNow}"
+    let mut  accum : Array Expr := Array.empty
     for eq1 in eqsymm do
       let type ← inferType eq1
       match type.eq? with
@@ -416,7 +429,7 @@ def propagateEqualities (eqs: Array Expr) : TermElabM (Array Expr) :=
         unless (rhs2 == lhs) do
           let eq3 ←  mkAppM `Eq.trans #[eq1, eq2]
           accum ← accum.push eq3
-    return accum
+    return accum 
 
 
 def propagateEqualitiesOld (eqs: Array Expr) : TermElabM (Array Expr) := 

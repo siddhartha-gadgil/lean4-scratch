@@ -61,7 +61,7 @@ def generateSeek(n: Nat)(saveOpt: Option Name)
       (initState: Array Expr)(goalNames : List Name)(mvar: MVarId)
       (dynamics : Nat → Array Expr → Array Name → TermElabM (Array Expr)) : TacticM Unit :=
               withMVarContext mvar do
-          -- logInfo m!"intros : {← types introFreeVars.toList}"
+          logInfo m!"starting generation: {← IO.monoMsNow}"
           let target ←  getMVarType mvar
           let init := initState
           let baseEvolved ← dynamics n  init goalNames.toArray
@@ -93,6 +93,7 @@ def generateSeek(n: Nat)(saveOpt: Option Name)
           match saveOpt with
             | some name => saveExprArr name exported
             | none => return ()
+          logInfo m!"completed generation: {← IO.monoMsNow}"
           return ()
 
 syntax (name:= introsRwFind) "introsRwFind" (num ("save:" ident)?)?: tactic
@@ -149,8 +150,8 @@ syntax (name:= polyFind) "polyFind" init_source (num)?
           (n: Nat)(saveOpt: Option Name) : TacticM Unit :=
         withMainContext do
         let mvar ← getMainGoal
-        let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)
-        generateSeek n saveOpt  initState goalNames mvar iterAppRWTask
+        let goalNames ← ConstDeps.recExprNames (← getEnv) (← getMainTarget)        
+        generateSeek n saveOpt  initState goalNames mvar iterAppRWTask        
       getInit (stx: Syntax) : TacticM (Array Expr) :=
         match stx with
         | `(init_source|#⟨$[$xs:term],*⟩) => 
@@ -311,6 +312,7 @@ syntax (name:= propeqs) "propeqs"  ident: tactic
   match stx with
   | `(tactic| propeqs $name) => 
     withMainContext do
+      logInfo m!"started equality propagation: {← IO.monoMsNow}"
       let name ← name.getId
       let loadState ← loadExprArr name
       let lctx ← getLCtx
@@ -320,16 +322,19 @@ syntax (name:= propeqs) "propeqs"  ident: tactic
       let initState ← loadState.mapM $ fun e => do whnf $ ← reduce $ mkAppN e fvars
       let mvar ← getMainGoal
       let target ← getMainTarget
+      logInfo m!"loaded equalities for propagation: {← IO.monoMsNow}"
       let evolved ← propagateEqualities initState
+      logInfo m!"propagated equalities: {← IO.monoMsNow}\ngot: {evolved.size}"
       let found ← evolved.findM? (fun e => do isDefEq (← inferType e) target)
-          match found with
-          | some x => 
-            do
-              logInfo m!"found : {x}"
-              logInfo m!"found-type: {← inferType x}"
-              assignExprMVar mvar x
-              replaceMainGoal []
-          | none => 
-            replaceMainGoal [mvar]
-          return ()
+      logInfo m!"completed search: {← IO.monoMsNow}"
+      match found with
+      | some x => 
+        do
+          logInfo m!"found : {x}"
+          logInfo m!"found-type: {← inferType x}"
+          assignExprMVar mvar x
+          replaceMainGoal []
+      | none => 
+        replaceMainGoal [mvar]
+      return ()
   | _ =>  Elab.throwIllFormedSyntax
