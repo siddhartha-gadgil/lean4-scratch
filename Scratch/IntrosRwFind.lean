@@ -325,7 +325,7 @@ syntax (name:= propeqs) "propeqs"  ident: tactic
       logInfo m!"loaded equalities for propagation: {← IO.monoMsNow}"
       let evolved ← propagateEqualities initState
       logInfo m!"propagated equalities: {← IO.monoMsNow}\ngot: {evolved.size}"
-      let found ← evolved.findM? (fun e => do isDefEq (← inferType e) target)
+      let found ← evolved.find? target
       logInfo m!"completed search: {← IO.monoMsNow}"
       match found with
       | some x => 

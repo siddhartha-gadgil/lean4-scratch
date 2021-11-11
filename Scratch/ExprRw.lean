@@ -394,7 +394,7 @@ def distinctTypes (exps: Array Expr) : TermElabM (Array Expr) := do
       distinct := distinct.push expr
   return distinct
 
-def propagateEqualities (eqs: Array Expr) : TermElabM (Array Expr) := 
+def propagateEqualities (eqs: Array Expr) : TermElabM (HashMap Expr Expr) := 
   do
     let mut eqsymm : Array Expr := #[]
     let mut eqTypes : HashSet Expr := HashSet.empty
@@ -423,7 +423,7 @@ def propagateEqualities (eqs: Array Expr) : TermElabM (Array Expr) :=
           | none => #[(eq, rhs)] 
         withLhs ← withLhs.insert lhs lhsUp
     logInfo m!"equality map generated: {← IO.monoMsNow}"
-    let mut  accum : Array Expr := Array.empty
+    let mut  accum : HashMap Expr Expr := HashMap.empty
     let mut accumSides : HashSet (Expr × Expr) := HashSet.empty
     for eq1 in eqsymm do
       let type ← inferType eq1
@@ -434,7 +434,8 @@ def propagateEqualities (eqs: Array Expr) : TermElabM (Array Expr) :=
         for (eq2, rhs2) in eqs2 do
         unless (rhs2 == lhs) || (accumSides.contains (lhs, rhs2)) do
           let eq3 ←  mkAppM `Eq.trans #[eq1, eq2]
-          accum ← accum.push eq3
+          let type ← mkEq lhs rhs2
+          accum ← accum.insert type eq3
           accumSides := accumSides.insert (lhs, rhs2)
     return accum 
 
