@@ -2,6 +2,7 @@ import Scratch.ExprAppl
 import Lean.Meta
 import Lean.Elab
 import Std.Data.HashMap
+import Std.Data.HashSet
 open Std
 open Lean
 open Meta
@@ -396,14 +397,18 @@ def distinctTypes (exps: Array Expr) : TermElabM (Array Expr) := do
 def propagateEqualities (eqs: Array Expr) : TermElabM (Array Expr) := 
   do
     let mut eqsymm : Array Expr := #[]
+    let mut eqTypes : HashSet Expr := HashSet.empty
     for eq in eqs do
       let type ← inferType eq
       if type.isEq then
-        unless eqsymm.contains eq do
-          eqsymm ← eqsymm.push eq
+        unless eqTypes.contains type do
+          eqsymm := eqsymm.push eq
+          eqTypes := eqTypes.insert type
         let seq ← whnf (← mkAppM `Eq.symm #[eq])
-        unless eqsymm.contains seq do
+        let seqType ← inferType seq
+        unless eqTypes.contains seqType do
           eqsymm ← eqsymm.push seq
+          eqTypes := eqTypes.insert seqType
     logInfo m!"symmetrize equalities for propagation: {← IO.monoMsNow}"
     logInfo m!"got:{eqsymm.size}"
     let mut withLhs : HashMap Expr (Array (Expr × Expr)) := HashMap.empty
@@ -419,6 +424,7 @@ def propagateEqualities (eqs: Array Expr) : TermElabM (Array Expr) :=
         withLhs ← withLhs.insert lhs lhsUp
     logInfo m!"equality map generated: {← IO.monoMsNow}"
     let mut  accum : Array Expr := Array.empty
+    let mut accumSides : HashSet (Expr × Expr) := HashSet.empty
     for eq1 in eqsymm do
       let type ← inferType eq1
       match type.eq? with
@@ -426,9 +432,10 @@ def propagateEqualities (eqs: Array Expr) : TermElabM (Array Expr) :=
       | some (α , lhs, rhs) =>
         let eqs2 := (withLhs.getOp rhs).getD #[]
         for (eq2, rhs2) in eqs2 do
-        unless (rhs2 == lhs) do
+        unless (rhs2 == lhs) || (accumSides.contains (lhs, rhs2)) do
           let eq3 ←  mkAppM `Eq.trans #[eq1, eq2]
           accum ← accum.push eq3
+          accumSides := accumSides.insert (lhs, rhs2)
     return accum 
 
 
