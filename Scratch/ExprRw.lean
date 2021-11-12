@@ -218,6 +218,23 @@ def Array.join {α : Type}[BEq α](a : Array (Array α)) : Array α := do
 def eqIsles (eqs: Array Expr)(evolve : Array Expr → TermElabM (Array Expr))(init : List Expr) : 
         TermElabM (Array Expr) := 
         do
+        -- logInfo m!"eqIsles: {eqs.size}"
+        -- let mut eqGroupMap : HashMap Expr (Array Expr) := HashMap.empty
+        -- for eq in eqs do
+        --   match (← inferType eq).eq? with
+        --   | some (α, lhs, rhs) =>
+        --       let prev := (eqGroupMap.find? α).getD #[] 
+        --       eqGroupMap := eqGroupMap.insert eq (prev.push eq)
+        --   | none => ()
+        -- let eqGroups := eqGroupMap.toArray
+        -- logInfo m!"eqGroups: {eqGroups}"
+        -- let res : Array Expr ← eqGroups.concatMapM $ fun (α, eqns) =>
+        --       do 
+        --       let fs ← isle α evolve init false true
+        --       logInfo m!"fs: {fs.size}"
+        --       let shifted ← eqns.concatMapM $ fun eq =>  
+        --             fs.filterMapM (fun f => eqCongrOpt f eq)
+        --       return shifted
         let res ← eqs.filterMapM $ fun eq => do
           match (← inferType eq).eq? with
           | some (α, lhs, rhs) => 
