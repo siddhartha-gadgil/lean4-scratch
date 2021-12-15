@@ -14,7 +14,7 @@ open Elab
 
 namespace CoreDeps
 
-def coreEnv : IO Environment := importModules ([⟨`Init, false⟩]) Options.empty
+def coreEnv : IO Environment := importModules ([{module := `Init}]) {}
 
 -- #eval offSpringPairs coreEnv (some 0) (some 100)
 
