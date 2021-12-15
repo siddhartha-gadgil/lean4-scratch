@@ -17,8 +17,6 @@ open Lean
 
 def main (args: List String) : IO Unit := do
   IO.println "Hello, world!"
-  -- let nameList ← egNames
-  -- IO.println nameList
   let n : Nat := 
   match args.head? with
   | none => 3 
@@ -29,22 +27,12 @@ def main (args: List String) : IO Unit := do
   let u : MetaM Expr := 
     do 
       let e ← metaAddOne (mkNatLit n)
-      -- let v ← exprView e
-      return e
+      let v ← exprView e -- checking import
+      IO.println e
+      return ← whnf e
   let uu := u.run {}
-  -- let _ ← initSearchPath (some "build:build/lib/lean")
-  let sp ← searchPathRef.get
-  IO.println sp
-  let fname ← sp.findWithExt "olean" `Init
-  IO.println fname
-  -- IO.println (← fname.get!.pathExists)
-  -- let (mod, region) ← readModuleData fname.get!
-  IO.println "loaded"
-  let initializing ← IO.initializing
-  if initializing then 
-      throw (IO.userError "environment objects cannot be created during initialization")
-  let env ← mkEmptyEnvironment  
-            -- importModules [⟨`Scratch.Egs, false⟩] {}
+  initSearchPath (← Lean.findSysroot?) ["build/lib"]
+  let env ← importModules [{module := `Scratch.Egs}] {}
   let uuu := uu.run {} {env}
   let uStep ←  uuu.toIO'
   let uSplit : IO (Sum Expr String) :=
@@ -56,9 +44,5 @@ def main (args: List String) : IO Unit := do
           return (Sum.inr msg)
   let uuuu ← uSplit
   IO.println (uuuu)
-  let bd ← Lean.getBuildDir 
-  IO.println bd
-  -- let bs ← Lean.getBuiltinSearchPath
-  -- IO.println bs
   IO.println "done"
   return ()

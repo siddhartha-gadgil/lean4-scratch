@@ -392,7 +392,7 @@ def exprView(e: Expr) : MetaM Expr :=
       -- let tts ← mkAppM ``ToString.toString #[t] 
       let v ← -- mkAppN tts #[e]
          mkAppM ``explicitToString #[tp, e, t]
-      return v
+      return ← whnf v
 
 
 syntax (name := showexpr) "show! " term : term
