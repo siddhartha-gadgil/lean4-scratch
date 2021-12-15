@@ -116,7 +116,7 @@ def rwListArgsTask (mvarId : MVarId)(symm: Bool) :
     match fns with
     | [] => Task.pure (return [])
     | f :: gs => 
-      do
+      Id.run do
         let headTask : Task (MetaM (Option Expr)) := 
           (Task.spawn (fun _ => rwActOptM mvarId f arg)).bind 
             fun headRWM =>
@@ -150,7 +150,7 @@ def rwPairsTask(mvarId : MVarId)(symm: Bool) : List Expr →  List Expr  → Tas
   match l with
   | [] => Task.pure (return [])
   | x :: ys => 
-    do
+    Id.run do
       let argEqn : Task (MetaM Bool) := 
           Task.spawn $ fun _ =>
            do 
@@ -208,7 +208,7 @@ def isleSum (types: List Expr)(evolve : Array Expr → TermElabM (Array Expr))(i
             let head ← isle h evolve init
             return head ++ tail        
 
-def Array.join {α : Type}[BEq α](a : Array (Array α)) : Array α := do
+def Array.join {α : Type}[BEq α](a : Array (Array α)) : Array α := Id.run do
   let mut res : Array α  := #[]
   for x in a do
     for y in x do

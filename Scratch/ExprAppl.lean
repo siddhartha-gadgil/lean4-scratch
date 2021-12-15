@@ -100,7 +100,7 @@ def listAppArgsTask : Expr → List Expr → Task (TermElabM (List Expr)) :=
     match args with
     | [] => Task.pure (return [])
     | x :: ys => 
-      do
+      Id.run do
         let headTask := Task.spawn (fun _ => applyOptM f x)
         let tailTask := listAppArgsTask f ys
         headTask.bind $ fun head => 
@@ -126,7 +126,7 @@ def applyPairsTask : List Expr →  List Expr  → Task (TermElabM (List Expr)) 
   match l with
   | [] => Task.pure (return [])
   | x :: ys => 
-    do
+    Id.run do
       let headTask := listAppArgsTask x args
       let tailTask := listAppArgsTask x ys
       headTask.bind $ fun head => 
