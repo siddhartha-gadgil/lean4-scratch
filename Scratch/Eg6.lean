@@ -18,13 +18,13 @@ import Scratch.Eg5
 
 #eval getX
 
-#check incTask
+-- #check incTask
 
-#eval incTask
+-- #eval incTask
 
-#eval getX
+-- #eval getX
 
-#eval incTask
+-- #eval incTask
 
 def snapShot : IO Nat := 
   do

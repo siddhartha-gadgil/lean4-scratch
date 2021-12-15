@@ -236,13 +236,13 @@ def incXRef(ref: IO.Ref Nat) : IO Nat :=
 #check getX
 
 
-def incTask : IO Unit  :=
-  do 
-    let tsk := IO.asTask (dbgSleep 600 $ fun _ => incX)
-    tsk.map (fun _ => ())
-    return ()
+-- def incTask : IO Unit  :=
+--   do 
+--     let tsk := IO.asTask (dbgSleep 600 $ fun _ => incX)
+--     tsk.map (fun _ => ())
+--     return ()
 
-#check incTask
+-- #check incTask
 
 
 
@@ -353,11 +353,11 @@ def transitPf {α : Type}:{a b c : α} →
 
 variable {M: Type u}[Mul M]
 
-example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
-            (m n : M) →  (m * n) = n * m := by
-            intros eq1 eq2 m n
-            exppieces
-            exact sorry
+-- example : (∀ a b : M, (a * b) * b = a) → (∀ a b : M, a * (a * b) = b) →
+--             (m n : M) →  (m * n) = n * m := by
+--             intros eq1 eq2 m n
+--             exppieces
+--             exact sorry
             
 
 #check @HMul.hMul Nat Nat Nat (inferInstance)
