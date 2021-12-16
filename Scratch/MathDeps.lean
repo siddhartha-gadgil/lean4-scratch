@@ -32,9 +32,11 @@ def writeBlob : IO Unit := do
 
 #eval writeBlob
 
+def mathTriples := offSpringTriple mathEnv [`Lean, `Std, `IO, 
+          `Char, `String, `ST, `StateT, `Repr, `ReaderT, `EIO, `BaseIO]
+
 def mathTriplesString : IO String := do
-  let pairs ← offSpringTriple mathEnv [`Lean, `Std, `IO]
-  let blob : String := pairs.foldl (
+  let blob : String := (← mathTriples).foldl (
         fun s (p, l, lt) => 
           s ++ "[" ++  (p.toString) ++ "," ++ l.toString  
             ++ "," ++ lt.toString ++ "]\n") ""
