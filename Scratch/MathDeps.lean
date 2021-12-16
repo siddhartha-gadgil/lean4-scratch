@@ -10,7 +10,9 @@ namespace MatDeps
 
 def mathEnv: IO Environment := importModules ([{module := `Mathlib}]) {}
 
-def mathPairs := offSpringPairs mathEnv none none
+#eval (namePrefixes mathEnv)
+
+def mathPairs := offSpringPairs mathEnv [`Lean, `Std, `IO]
 
 #check mathPairs
 
@@ -31,7 +33,7 @@ def writeBlob : IO Unit := do
 #eval writeBlob
 
 def mathTriplesString : IO String := do
-  let pairs ← offSpringTriple mathEnv none none
+  let pairs ← offSpringTriple mathEnv [`Lean, `Std, `IO]
   let blob : String := pairs.foldl (
         fun s (p, l, lt) => 
           s ++ "[" ++  (p.toString) ++ "," ++ l.toString  

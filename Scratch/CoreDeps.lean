@@ -18,7 +18,7 @@ def coreEnv : IO Environment := importModules ([{module := `Init}]) {}
 
 -- #eval offSpringPairs coreEnv (some 0) (some 100)
 
-def corePairs := offSpringPairs coreEnv none none
+def corePairs := offSpringPairs coreEnv 
 
 #check corePairs
 
@@ -41,7 +41,7 @@ def writeBlob : IO Unit := do
 #eval writeBlob
 
 def coreTriplesString : IO String := do
-  let pairs ← offSpringTriple coreEnv none none
+  let pairs ← offSpringTriple coreEnv 
   let blob : String := pairs.foldl (
         fun s (p, l, lt) => 
           s ++ "[" ++  (p.toString) ++ "," ++ l.toString  

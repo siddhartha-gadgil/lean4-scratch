@@ -50,6 +50,11 @@ def namePrefixes (envIO: IO Environment) : IO (List Name) := do
   let prefixes := names.map $ fun name => name.getPrefix
   return prefixes.eraseDups
 
+def leanPrefixes (envIO: IO Environment) : IO (List Bool) := do
+  let names ← constantNames envIO
+  let prefixes := names.map $ fun name => (`Lean).isPrefixOf name
+  return prefixes
+
 def nameExpr? : Environment → Name → Option Expr :=
   fun env name =>
       let info := (env.find? name)
@@ -183,18 +188,14 @@ def offSpringV?(env: Environment) (name: Name) : TermElabM (Option (List Name)) 
   | none => return none
 
 
-def offSpringPairs(envIO: IO Environment)(startOpt: Option Nat)(boundOpt : Option Nat)
+def offSpringPairs(envIO: IO Environment)(excludePrefixes: List Name := [])
               : IO (List (Name × (List Name))) :=
   do
   let env ← envIO
-  let keys ←  constantNames envIO
-  let start := startOpt.getD 0
-  let keyRange := 
-    match boundOpt with
-    | some bound => 
-      (keys.drop start).take bound
-    | none => keys.drop start
-  let kv : List (Name × (List Name)) ←  (keyRange).filterMapM $ 
+  let keys ←  (constantNames envIO)
+  let goodKeys := keys.filter fun name =>
+    !(excludePrefixes.any (fun pfx => pfx.isPrefixOf name))
+  let kv : List (Name × (List Name)) ←  (goodKeys).filterMapM $ 
       fun n => 
           do 
           let off ← offSpring?  env n
@@ -203,18 +204,14 @@ def offSpringPairs(envIO: IO Environment)(startOpt: Option Nat)(boundOpt : Optio
           | none => none
         return kv
 
-def offSpringTriple(envIO: IO Environment)(startOpt: Option Nat)(boundOpt : Option Nat)
+def offSpringTriple(envIO: IO Environment)(excludePrefixes: List Name := [])
               : IO (List (Name × (List Name) × (List Name) )) :=
   do
   let env ← envIO
   let keys ←  constantNameTypes  envIO
-  let start := startOpt.getD 0
-  let keyRange := 
-    match boundOpt with
-    | some bound => 
-      (keys.drop start).take bound
-    | none => keys.drop start
-  let kv : List (Name × (List Name) × (List Name)) ←  (keyRange).filterMapM $ 
+  let goodKeys := keys.filter fun (name, _) =>
+    !(excludePrefixes.any (fun pfx => pfx.isPrefixOf name))
+  let kv : List (Name × (List Name) × (List Name)) ←  (goodKeys).filterMapM $ 
       fun (n, type) => 
           do 
           let off ← offSpring?  env n
