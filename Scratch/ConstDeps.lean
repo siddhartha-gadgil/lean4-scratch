@@ -216,7 +216,10 @@ def offSpringTriple(envIO: IO Environment)(excludePrefixes: List Name := [])
           do 
           let off ← offSpring?  env n
           match off with
-          | some l =>  some (n, l, ← recExprNames env type)
+          | some l => 
+            if excludePrefixes.any (fun pfx => 
+               l.any $ fun n => pfx.isPrefixOf n) then none
+                else some (n, l, ← recExprNames env type)
           | none => none
         return kv
 
