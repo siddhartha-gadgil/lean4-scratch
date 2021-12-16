@@ -6,11 +6,11 @@ open Lean.Meta
 open ConstDeps
 open Elab
 
-namespace MatDeps
+namespace MathDeps
 
 def mathEnv: IO Environment := importModules ([{module := `Mathlib}]) {}
 
-#eval (namePrefixes mathEnv)
+-- #eval (namePrefixes mathEnv)
 
 def mathPairs := offSpringPairs mathEnv [`Lean, `Std, `IO]
 
@@ -49,3 +49,5 @@ def writeTriples : IO Unit := do
   return ()
 
 #eval writeTriples
+
+end MathDeps
