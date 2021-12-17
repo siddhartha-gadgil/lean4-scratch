@@ -224,3 +224,16 @@ def offSpringTriple(envIO: IO Environment)(excludePrefixes: List Name := [])
         return kv
 
 end ConstDeps
+
+def nameCount(data: List (Name × (List Name) × (List Name) )): HashMap Name Nat := Id.run do
+    let mut count := {}
+    for (n, inTerm, inType) in data do
+      for term in inTerm do
+        if !(inType.contains term) then
+        let c := (count.find? term).getD 0
+        count := count.insert term (c+1)
+    return count
+        
+
+def topNames(count : HashMap Name Nat)(limit: Nat): List (Name × Nat) :=
+  (count.toArray.qsort $ fun (_, n1) (_, n2) => n1 > n2).toList.take limit

@@ -50,4 +50,7 @@ def main (args: List String) : IO Unit := do
   let mathTriples ←  ConstDeps.offSpringTriple (pure mathEnv) [`Lean, `Std, `IO, 
           `Char, `String, `ST, `StateT, `Repr, `ReaderT, `EIO, `BaseIO]
   IO.println (mathTriples.length)
+  let mathCount ← nameCount mathTriples
+  let top200 ← topNames mathCount 200
+  IO.println (top200)
   return ()
