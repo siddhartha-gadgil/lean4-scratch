@@ -2,6 +2,7 @@ import Scratch.Egs
 import Scratch.Eg9
 import Scratch.TermSeq
 import Scratch.ConstDeps
+import Scratch.MathDeps
 import Lean
 import Lean.Meta
 import Lean.Data.Name
@@ -46,7 +47,7 @@ def main (args: List String) : IO Unit := do
   let uuuu ← uSplit
   IO.println (uuuu)
   IO.println "done"
-  let mathEnv ←  importModules ([{module := `Mathlib}]) {}
+  let mathEnv ← MathDeps.mathEnv -- importModules ([{module := `Mathlib}]) {}
   let mathTriples ←  ConstDeps.offSpringTriple (pure mathEnv) [`Lean, `Std, `IO, 
           `Char, `String, `ST, `StateT, `Repr, `ReaderT, `EIO, `BaseIO]
   IO.println (mathTriples.length)

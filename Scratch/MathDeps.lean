@@ -1,4 +1,4 @@
-import Mathlib 
+-- import Mathlib 
 import Scratch.ConstDeps
 import Lean.Meta 
 open Lean
