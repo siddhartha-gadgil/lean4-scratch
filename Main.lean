@@ -48,7 +48,7 @@ def main (args: List String) : IO Unit := do
   IO.println (uuuu)
   IO.println "done"
   let mathEnv ← MathDeps.mathEnv -- importModules ([{module := `Mathlib}]) {}
-  let mathTriples ← MathDeps.mathTriples
+  let mathTriples ← MathDeps.mathTriples ()
   -- ConstDeps.offSpringTriple (pure mathEnv) [`Lean, `Std, `IO, 
           -- `Char, `String, `ST, `StateT, `Repr, `ReaderT, `EIO, `BaseIO]
   IO.println (mathTriples.length)
