@@ -32,8 +32,12 @@ def writeBlob : IO Unit := do
 
 #eval writeBlob
 
-def mathTriples := offSpringTriple mathEnv [`Lean, `Std, `IO, 
+def mathTriples  : IO (List (Name × List Name × List Name)) := do
+        IO.println ("within math-triples")
+        let result ← offSpringTriple mathEnv [`Lean, `Std, `IO, 
           `Char, `String, `ST, `StateT, `Repr, `ReaderT, `EIO, `BaseIO]
+        IO.println "obtained  result"
+        return result
 
 def mathTriplesString : IO String := do
   let blob : String := (← mathTriples).foldl (
