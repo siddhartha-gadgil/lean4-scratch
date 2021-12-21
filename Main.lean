@@ -1,5 +1,6 @@
 import Scratch.Egs
 import Scratch.Eg9
+import Scratch.Eg5
 import Scratch.TermSeq
 import Scratch.ConstDeps
 import Scratch.MathDeps
@@ -16,7 +17,7 @@ open Lean.Meta
 open Lean.Elab.Term
 open Lean
 
-
+set_option compiler.extract_closed false
 def main (args: List String) : IO Unit := do
   IO.println "Hello, world!"
   let n : Nat := 
@@ -55,8 +56,14 @@ def main (args: List String) : IO Unit := do
   let mathCount ← nameCount mathTriples
   let top200 ← topNames mathCount 200
   IO.println (top200)
-  IO.println "Computing Ack(4, 1)"
-  IO.println $ ackermann 4 2
+  IO.println "Computing slow-minimum 2000"
+  -- (tst 11).map <| fun _ => ()
+  let t1 := Task.spawn (prio := Task.Priority.dedicated) fun _ => slowMin 2000
+  let t2 := Task.spawn (prio := Task.Priority.dedicated) fun _ => slowMin 2100
+  let t3 := Task.spawn (prio := Task.Priority.dedicated) fun _ => slowMin 2200
+  -- let res := slowMin 2000 
+  -- IO.println (res)
+  IO.println (t1.get + t2.get + t3.get)
   return ()
 
 #check IO.wait
