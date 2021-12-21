@@ -261,7 +261,7 @@ def Array.inTermElab {α : Type}(l : Array (TermElabM α)) : TermElabM (Array α
 
   
 
-def rwAppCongStepTask : Array Expr → Array Name → Task (TermElabM (Array Expr)):=
+def rwAppCongStepTask : Array Expr → Array Name → (TermElabM (Array Expr)):=
     fun l names => 
     let funcs :=  l.filterM $ fun e => 
       let check: TermElabM Bool := do
@@ -290,10 +290,9 @@ def rwAppCongStepTask : Array Expr → Array Name → Task (TermElabM (Array Exp
                     (rwsFlip.append (congs.append (apps)))).append (nameApps) ++ nameAppPairs 
         else           
           return apps ++ nameApps ++ nameAppPairs
-    let tlml := Task.array ltml 
-    let tml := tlml.map $ fun lst => 
-      (Array.inTermElab lst).map (fun ll => (Array.join ll) ++ l)
-    tml
+    let lst := ltml.map <| fun t=> t.get
+    let ml := (Array.inTermElab lst).map (fun ll => (Array.join ll) ++ l)
+    ml
 
 def rwAppCongStep(mvarId : MVarId) : Array Expr → TermElabM (Array Expr):=
   fun l =>
@@ -336,7 +335,7 @@ def iterAppRWTask(n: Nat) : Array Expr → Array Name  → TermElabM (Array Expr
       let isles ← eqIsles prev 
         (fun list => (iterAppRWTask m list names)) prev.toList
       -- Elab.logInfo m!"isles: {isles}"
-      let rwStep ← rwStepTask.get
+      let rwStep ← rwStepTask
       return rwStep ++ isles
 
 def iterAppRWMTask(n: Nat): List Expr → List Name → TermElabM (List Expr) :=
