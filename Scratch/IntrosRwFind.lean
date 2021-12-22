@@ -155,13 +155,7 @@ syntax (name:= polyFind) "polyFind" init_source (num)?
           return #[]
           -- throwIllFormedSyntax
       loadedState (name : Name) : TacticM (Array Expr) := 
-        withMainContext do
-        let loadState ← loadExprArr name
-        let lctx ← getLCtx
-        let fvarIds ← lctx.getFVarIds
-        let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
-        let fvars := fvIds.map mkFVar
-        loadState.mapM $ fun e => reduce (mkAppN e fvars)
+        withMainContext do loadExprArr name
 
 def modusPonens : {α β : Type} →  α → (α → β) → β := by
       introsRwFind 1 save:blah
@@ -180,7 +174,7 @@ def blahTypes : TermElabM (Array Expr) := do
     return ← es.mapM (fun e => inferType e)
 
 -- #eval blahTypes
-#eval blah
+-- #eval blah
 
 #print modusPonens
 #print modus_ponens
@@ -260,13 +254,9 @@ syntax (name:= eqDeduc) "eqDeduc" ("#⟨" term,* "⟩") (num ("eqs:" ident)) ("s
   | _ => Elab.throwIllFormedSyntax
   where
     loadedState (name: Name) : TacticM (Array Expr) := 
-    withMainContext do
-      let loadState ← loadExprArr name
-      let lctx ← getLCtx
-      let fvarIds ← lctx.getFVarIds
-      let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
-      let fvars := fvIds.map mkFVar
-      loadState.mapM $ fun e => do whnf $ ← reduce $ mkAppN e fvars
+    withMainContext do 
+      let loadedState ←  loadExprArr name
+      loadedState.mapM $ fun e => whnf e
 
 syntax (name:= lookup) "lookup"  ident: tactic
 @[tactic lookup] def lookupImpl : Tactic :=
@@ -276,11 +266,7 @@ syntax (name:= lookup) "lookup"  ident: tactic
     withMainContext do
       let name ← name.getId
       let loadState ← loadExprArr name
-      let lctx ← getLCtx
-      let fvarIds ← lctx.getFVarIds
-      let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
-      let fvars := fvIds.map mkFVar
-      let memo ← loadState.mapM $ fun e => do whnf $ ← reduce $ mkAppN e fvars
+      let memo ← loadState.mapM $ fun e => do whnf e
       let mvar ← getMainGoal
       let target ← getMainTarget
       let found ← memo.findM? (fun e => do isDefEq (← inferType e) target)
@@ -305,11 +291,7 @@ syntax (name:= propeqs) "propeqs"  ident: tactic
       logInfo m!"started equality propagation: {← IO.monoMsNow}"
       let name ← name.getId
       let loadState ← loadExprArr name
-      let lctx ← getLCtx
-      let fvarIds ← lctx.getFVarIds
-      let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
-      let fvars := fvIds.map mkFVar
-      let initState ← loadState.mapM $ fun e => do whnf $ ← reduce $ mkAppN e fvars
+      let initState ← loadState.mapM $ fun e => do whnf e 
       let mvar ← getMainGoal
       let target ← getMainTarget
       logInfo m!"loaded equalities for propagation: {← IO.monoMsNow}"

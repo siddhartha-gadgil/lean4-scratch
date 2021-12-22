@@ -386,18 +386,24 @@ def saveExprArr (name: Name)(es: Array Expr) : TermElabM (Unit) := do
   let fvarIds ← lctx.getFVarIds
   let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
   let fvars := fvIds.map mkFVar
-  let es ← es.mapM (fun e => mkLambdaFVars fvars e)
-  let es ← es.mapM (fun e => whnf e)
   Term.synthesizeSyntheticMVarsNoPostponing 
   let espair ← es.mapM (fun e => do Term.levelMVarToParam (← instantiateMVars e))
   let es ← espair.mapM fun (e, _) => return e
+  let es ← es.mapM (fun e => mkLambdaFVars fvars e)
+  let es ← es.mapM (fun e => whnf e)
+  logInfo m!"saving relative to: {fvars}"
   cacheArr name es
   return ()
 
 def loadExprArr (name: Name) : TermElabM (Array Expr) := do
+  let lctx ← getLCtx
+  let fvarIds ← lctx.getFVarIds
+  let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
+  let fvars := fvIds.map mkFVar
+  logInfo m!"loading relative to: {fvars}"
   let cache ← exprArrCache.get
   match cache.find? name with
-  | some es => return es
+  | some es => es.mapM $ fun e => reduce (mkAppN e fvars)
   | none => throwError m!"no cached expr for {name}"
 
 def distinctTypes (exps: Array Expr) : TermElabM (Array Expr) := do
