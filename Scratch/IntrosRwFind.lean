@@ -7,10 +7,6 @@ open Meta
 open Lean.Elab.Tactic
 open Elab
 
-def whiteListed (n: Name) : TermElabM Bool := do
-  let b ← ConstDeps.isWhiteListed (← getEnv) n
-  return b
-
 def exprPieces : Expr → MetaM (List Expr)
   | Expr.app f a _ => 
     do 
@@ -74,12 +70,6 @@ def generateSeek(n: Nat)(saveOpt: Option Name)
               evolved :=  evolved.push exp
             let type ← inferType exp
             let type ← whnf $ ← reduce type
-          let lctx ← getLCtx
-          let fvarIds ← lctx.getFVarIds
-          let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
-          let fvars := fvIds.map mkFVar
-          let exported ← evolved.mapM (
-                      fun e => mkLambdaFVars fvars e) 
           let found ← evolved.findM? (fun e => do isDefEq (← inferType e) target)
           match found with
           | some x => 
@@ -91,7 +81,7 @@ def generateSeek(n: Nat)(saveOpt: Option Name)
           | none => 
             replaceMainGoal [mvar]
           match saveOpt with
-            | some name => saveExprArr name exported
+            | some name => saveExprArr name evolved
             | none => return ()
           logInfo m!"completed generation: {← IO.monoMsNow}"
           return ()

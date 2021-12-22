@@ -1,4 +1,5 @@
 import Scratch.ExprAppl
+import Scratch.ConstDeps
 import Lean.Meta
 import Lean.Elab
 import Std.Data.HashMap
@@ -8,6 +9,11 @@ open Lean
 open Meta
 open Elab
 open Lean.Elab.Tactic
+
+def whiteListed (n: Name) : TermElabM Bool := do
+  let b ← ConstDeps.isWhiteListed (← getEnv) n
+  return b
+
 
 def contains : Expr → Expr → MetaM Bool
   | e, x => 
@@ -376,6 +382,11 @@ def cacheArr (name: Name)(e: Array Expr)  : IO Unit := do
   return ()
 
 def saveExprArr (name: Name)(es: Array Expr) : TermElabM (Unit) := do
+  let lctx ← getLCtx
+  let fvarIds ← lctx.getFVarIds
+  let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
+  let fvars := fvIds.map mkFVar
+  let es ← es.mapM (fun e => mkLambdaFVars fvars e)
   let es ← es.mapM (fun e => whnf e)
   Term.synthesizeSyntheticMVarsNoPostponing 
   let espair ← es.mapM (fun e => do Term.levelMVarToParam (← instantiateMVars e))
