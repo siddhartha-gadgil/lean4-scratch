@@ -1,6 +1,5 @@
 import Scratch.ProdSeq
 import Scratch.ExprAppl
-import Scratch.ExprRw
 import Scratch.IntrosRwFind
 import Lean.Meta
 import Lean.Elab
@@ -35,7 +34,7 @@ def generate2 : List Expr → TermElabM (List Expr) :=
     logInfo m!"initial types {← types l}"
     let initTypes ← l.filterM (fun x => liftMetaM (isType x))
     logInfo m!"initial terms that are types : {initTypes}"
-    let gen3 ← isleSum initTypes (iterAppMTask 3) l
+    let gen3 ← isleSum initTypes (iterAppTask 3) l
     logInfo m!"from island : {gen3}"
     return l
 
@@ -60,7 +59,11 @@ syntax (name:= generateEg) "generate_from" term : tactic
           return ()
     | _ => throwIllFormedSyntax
 
+set_option maxHeartbeats 500000
+
+/- Taking too long, possibly a bug
 example (n m p: Nat)(eq1 : n = m)(eq2 : m = p)(P : Nat → Type)
       (f : Nat → Bool)(g: Bool → Nat) : Unit := by 
-      -- generate_from  n ::: eq1 ::: P ::: g ::: f ::: Nat ::: () 
-      generate_from eq1 ::: eq2 ::: P  ::: f ::: g ::: n ::: m ::: Nat ::: ()
+      generate_from  n ::: eq1 ::: P ::: g ::: f ::: Nat ::: () 
+      -- generate_from eq1 ::: eq2 ::: P  ::: f ::: g ::: n ::: m ::: Nat ::: ()
+-/
