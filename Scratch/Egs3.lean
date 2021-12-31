@@ -165,10 +165,10 @@ def letTac : Nat   := by
 
 #eval tsl! #⟨three, fl, "this"⟩
 
-def getFloat (s: String) : Option Float :=
-  (Syntax.decodeScientificLitVal? s).map (fun ⟨m, s, e⟩ => Float.ofScientific m s e) 
+-- def getFloat (s: String) : Option Float :=
+--   (Syntax.decodeScientificLitVal? s).map (fun ⟨m, s, e⟩ => Float.ofScientific m s e) 
 
-#eval getFloat "3.1415"
+-- #eval getFloat "3.1415"
 
 #eval Syntax.decodeScientificLitVal? (Float.toString (3.145))
 
@@ -222,7 +222,7 @@ def mapFn2 := k ⌣ Nat ↦ (k + 1)
 -- import Lean.Data.Json.Parser
 
 def parse (s : String) : Except String Float :=
-  match Json.Parser.num s.mkIterator with
+  match (Json.Parser.num <* Parsec.eof) s.mkIterator with
   | Parsec.ParseResult.success _ res =>
     Except.ok <| Float.ofInt res.mantissa * 10 ^ - Float.ofNat res.exponent
   | Parsec.ParseResult.error it err  => Except.error s!"offset {it.i.repr}: {err}"

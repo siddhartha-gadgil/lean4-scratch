@@ -58,9 +58,9 @@ def main (args: List String) : IO Unit := do
   IO.println (top200)
   IO.println "Computing slow-minimum 2000"
   -- (tst 11).map <| fun _ => ()
-  let t1 := Task.spawn (prio := Task.Priority.dedicated) fun _ => slowMin 2000
-  let t2 := Task.spawn (prio := Task.Priority.dedicated) fun _ => slowMin 2100
-  let t3 := Task.spawn (prio := Task.Priority.dedicated) fun _ => slowMin 2200
+  let t1 := Task.spawn  fun _ => slowMin 2000
+  let t2 := Task.spawn  fun _ => slowMin 2100
+  let t3 := Task.spawn  fun _ => slowMin 2200
   -- let res := slowMin 2000 
   -- IO.println (res)
   IO.println (t1.get + t2.get + t3.get)

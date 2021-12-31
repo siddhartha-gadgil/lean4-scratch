@@ -16,7 +16,7 @@ syntax (name := timeCmd)  "#time " command : command
   | _ => throwUnsupportedSyntax
 
 end
-
+/-
 set_option maxRecDepth 200000 in
 #time example : (List.range 5100).length = 5100 := rfl
-
+-/
