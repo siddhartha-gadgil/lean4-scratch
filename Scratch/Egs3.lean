@@ -165,10 +165,10 @@ def letTac : Nat   := by
 
 #eval tsl! #⟨three, fl, "this"⟩
 
--- def getFloat (s: String) : Option Float :=
---   (Syntax.decodeScientificLitVal? s).map (fun ⟨m, s, e⟩ => Float.ofScientific m s e) 
+def getFloat (s: String) : Option Float :=
+  (Syntax.decodeScientificLitVal? s).map (fun ⟨m, s, e⟩ => OfScientific.ofScientific m s e) 
 
--- #eval getFloat "3.1415"
+#eval getFloat "3.1415"
 
 #eval Syntax.decodeScientificLitVal? (Float.toString (3.145))
 

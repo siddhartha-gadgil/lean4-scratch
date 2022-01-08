@@ -1,4 +1,5 @@
 import Lean.Meta 
+import Lean.Elab
 open Lean Meta Elab Term
 
 declare_syntax_cat number
