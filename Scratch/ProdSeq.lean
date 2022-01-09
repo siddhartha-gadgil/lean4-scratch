@@ -61,6 +61,28 @@ def pack : List Expr →  MetaM Expr
       let expr ← mkAppM `PProd.mk #[x, t]
       return expr
 
+def lambdaPack : List Expr →  MetaM Expr 
+  | [] => return mkConst ``Unit.unit
+  | x :: ys => 
+    do
+      let t ← lambdaPack ys
+      let tail ← mkLambdaFVars #[x] t
+      let expr ← mkAppM `PProd.mk #[x, tail]
+      return expr
+
+partial def lambdaUnpack (expr: Expr) : MetaM (List Expr) :=
+    do
+      match (← split? expr) with
+      | some (h, t) =>
+        let tt ← whnf <| mkApp t h
+        let tail ←  lambdaUnpack tt
+        h :: tail
+      | none =>
+        do 
+        unless (← isDefEq expr (mkConst `Unit.unit))
+          do throwError m!"{expr} is neither product nor unit" 
+        return []
+
 def packTerms : List Expr →  MetaM Expr 
   | [] => return mkConst ``Unit.unit
   | x :: ys => 
@@ -131,6 +153,12 @@ syntax (name:= justterms) "terms!" term : term
   | _ => throwIllFormedSyntax
 
 #check roundtrip! (3, 10, "twelve", 13, ())
+
+#check fun x y: Nat => roundtrip! (x + x * y, ())
+
+inductive P: Nat → Nat → Type where
+
+#check fun x y: Nat => fun p : P x y => roundtrip! (x + x * y, p, ())
 
 infixr:65 ":::" => PProd.mk
 

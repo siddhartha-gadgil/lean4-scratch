@@ -1,5 +1,6 @@
 import Scratch.ExprAppl
 import Scratch.ConstDeps
+import Scratch.ProdSeq
 import Lean.Meta
 import Lean.Elab
 import Std.Data.HashMap
@@ -203,6 +204,8 @@ def iterAppRWTask(n: Nat) : Array Expr → Array Name  → TermElabM (Array Expr
 
 initialize exprArrCache : IO.Ref (HashMap Name (Array Expr)) ← IO.mkRef (HashMap.empty)
 
+initialize exprPackCache : IO.Ref (HashMap Name Expr) ← IO.mkRef (HashMap.empty)
+
 def getArrCached? (name : Name) : IO (Option (Array Expr)) := do
   let cache ← exprArrCache.get
   return (cache.find? name)
@@ -211,6 +214,16 @@ def cacheArr (name: Name)(e: Array Expr)  : IO Unit := do
   let cache ← exprArrCache.get
   exprArrCache.set (cache.insert name e)
   return ()
+
+def getPackCached? (name : Name) : IO (Option Expr) := do
+  let cache ← exprPackCache.get
+  return (cache.find? name)
+
+def cachePack (name: Name)(e: Expr)  : IO Unit := do
+  let cache ← exprPackCache.get
+  exprPackCache.set (cache.insert name e)
+  return ()
+
 
 def saveExprArr (name: Name)(es: Array Expr) : TermElabM (Unit) := do
   let lctx ← getLCtx
@@ -224,6 +237,8 @@ def saveExprArr (name: Name)(es: Array Expr) : TermElabM (Unit) := do
   let es ← es.mapM (fun e => whnf e)
   logInfo m!"saving relative to: {fvars}"
   cacheArr name es
+  let varPack ← ProdSeq.lambdaPack fvars.toList
+  cachePack name varPack
   return ()
 
 def loadExprArr (name: Name) : TermElabM (Array Expr) := do
@@ -232,6 +247,9 @@ def loadExprArr (name: Name) : TermElabM (Array Expr) := do
   let fvIds ← fvarIds.filterM $ fun fid => whiteListed ((lctx.get! fid).userName) 
   let fvars := fvIds.map mkFVar
   logInfo m!"loading relative to: {fvars}"
+  let fvarsCachedPack ← getPackCached? name
+  let fvarsCached ← fvarsCachedPack.mapM (fun p => ProdSeq.lambdaUnpack p)
+  logInfo m!"fvarsCached: {fvarsCached}" 
   let cache ← exprArrCache.get
   match cache.find? name with
   | some es => es.mapM $ fun e => reduce (mkAppN e fvars)
