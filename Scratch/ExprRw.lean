@@ -366,28 +366,3 @@ def iterAppTask(n: Nat) : Array Expr → TermElabM (Array Expr) :=
 def iterAppMTask(n: Nat) : List Expr → TermElabM (List Expr) :=
   fun l => ((iterAppTask n  l.toArray)).map (Array.toList)
 -- end used only in example generation, not in active code
-
-syntax (name:=isType) "type?" term : term
-@[termElab isType] def isTypeImpl : TermElab := fun stx _ => 
-  match stx with
-  | `(type? $s) => do
-        let x ← elabTerm s none true true
-        let check := (← inferType x).isSort
-        if check then return mkConst `Bool.true else return mkConst `Bool.false
-  | _ => throwIllFormedSyntax
-
-#eval type? Nat
-#eval type? 3
-#eval type? 1 = 2
-
-syntax (name:=isProof) "proof?" term : term
-@[termElab isProof] def isProofImpl : TermElab := fun stx _ => 
-  match stx with
-  | `(proof? $s) => do
-        let x ← elabTerm s none true true
-        let check := (← inferType (← inferType x)).isProp
-        if check then return mkConst `Bool.true else return mkConst `Bool.false
-  | _ => throwIllFormedSyntax
-
-#eval proof? 1 = 1
-#eval proof? (rfl : 1 = 1)
