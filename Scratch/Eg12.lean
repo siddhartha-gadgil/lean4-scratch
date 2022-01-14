@@ -58,6 +58,7 @@ syntax (name:=getDom) "dom!" term : term
   match stx with
   | `(dom! $s) => do
         let x ← elabTerm s none true true
+        Term.synthesizeSyntheticMVarsNoPostponing 
         match x with
         | Expr.forallE _ t b .. =>
             logInfo m!"body: {b}" 
@@ -65,9 +66,16 @@ syntax (name:=getDom) "dom!" term : term
         | Expr.lam _ t b .. => 
             logInfo m!"body: {b}" 
             return t
+        | Expr.letE _ t v b .. =>
+            logInfo m!"expr: {x}"
+            logInfo m!"body: {b}"
+            logInfo m!"value: {v}" 
+            return t
         | _ => throwError m!"domain does not make sense for {x}"
   | _ => throwIllFormedSyntax
 
 #check dom! ((x: Nat) →  x = 1)
 
 #check dom! (fun (x: Nat) => x + 1)
+
+#check fun y => dom! (let (x: Nat) := y + 2; x + 3)
