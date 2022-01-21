@@ -79,3 +79,22 @@ syntax (name:=getDom) "dom!" term : term
 #check dom! (fun (x: Nat) => x + 1)
 
 #check fun y => dom! (let (x: Nat) := y + 2; x + 3)
+
+open Nat
+
+def factorial: Nat→ Nat
+| 0 => 1
+| n + 1 => (n + 1) * factorial n
+
+def idnt (α : Type)(a: α) : α := a
+
+#eval idnt _ 1
+#eval idnt Nat 2
+
+def oneDigit (n: Nat)(pf: n < 10): Nat := n
+
+#eval oneDigit 3 (by skip; apply Nat.succ_lt_succ; apply Nat.succ_lt_succ; apply Nat.succ_lt_succ;    exact Nat.zero_lt_succ 6)
+
+#eval oneDigit 3 (Nat.succ_lt_succ (Nat.succ_lt_succ ((Nat.succ_lt_succ (Nat.zero_lt_succ _)))))
+
+#check Nat.zero_lt_succ 
