@@ -98,3 +98,16 @@ def oneDigit (n: Nat)(pf: n < 10): Nat := n
 #eval oneDigit 3 (Nat.succ_lt_succ (Nat.succ_lt_succ ((Nat.succ_lt_succ (Nat.zero_lt_succ _)))))
 
 #check Nat.zero_lt_succ 
+
+partial def gcd0(a b: Nat): Nat :=
+  if b = 0 then a else 
+  if b < a then gcd b (a % b) else gcd (b % a) a
+
+def gcd1(n: Nat)(a b: Nat)(wa: a ≤ n)(wb: b ≤ n): Nat := sorry
+
+#eval gcd0 12 16
+
+#check TermElabM.run' _ _
+
+def toMeta{α : Type}(x: TermElabM α) : MetaM α := 
+  x.run' 

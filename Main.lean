@@ -33,7 +33,7 @@ def main (args: List String) : IO Unit := do
       let v ← exprView e -- checking import
       IO.println e
       return ← whnf e
-  let uu := u.run' {}
+  let uu := u.run'
   initSearchPath (← Lean.findSysroot?) ["build/lib", "lean_packages/mathlib/build/lib/"]
   let env ← importModules [{module := `Scratch.Egs}] {}
   let uuu := uu.run' {} {env}
