@@ -36,13 +36,15 @@ def main (args: List String) : IO Unit := do
   let uu := u.run'
   initSearchPath (← Lean.findSysroot?) ["build/lib", "lean_packages/mathlib/build/lib/"]
   let env ← importModules [{module := `Scratch.Egs}] {}
-  let uuu := uu.run' {} {env}
+  let natDecl := OpenDecl.simple ``Nat []
+  let uuu := uu.run' {openDecls := [natDecl]} {env}
   let uStep ←  uuu.toIO'
   let uSplit : IO (Sum Expr String) :=
     match uStep with
     | Except.ok (uuuu) => return (Sum.inl uuuu)
     | Except.error e => 
         do
+          IO.println "For meta add one"
           let msg ← e.toMessageData.toString
           return (Sum.inr msg)
   let uuuu ← uSplit

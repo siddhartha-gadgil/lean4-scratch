@@ -4,6 +4,7 @@ open Lean.Core
 open Lean.Meta
 open Lean.Elab.Term
 open Lean
+open Nat
 
 def lower (n : MetaM Nat) : CoreM Nat :=
   n.run' {}
@@ -63,15 +64,39 @@ def eg2 := addone! 10
 #eval eg2
 #eval 3 + addone!
 
+
+
 def metaAddOne (n: MetaM Expr) : MetaM Expr :=
   do
     let i <- n
-    return mkApp (Lean.mkConst `Nat.succ) i
+    let env ← getEnv
+    IO.println s!"{env.contains ``succ}"
+    IO.println s!"{env.contains `succ}"
+    let decls ← getOpenDecls
+    IO.println s!"{decls}"
+    return mkApp (Lean.mkConst ``succ) i
 
 def addOne(n: Nat) : Nat := addone! n
   
 #print addOne
 #eval addOne 7
+#eval metaAddOne (mkConst `zero)
+#eval ``succ
+
+#check Elab.resolveGlobalConstNoOverloadWithInfo 
+
+def egNameM : TermElabM Name := do
+  let stx : Syntax ← `(succ)
+  IO.println s!"syntax : {stx}"
+  match stx with
+  | stx@(Syntax.ident _ _ n pre) => IO.println (s!"n: {n};  pre :{pre}")
+  | _ => IO.println "Error"
+  let ns : List Name ← Lean.resolveGlobalConst stx 
+  return ns.head! 
+
+#eval egNameM
+
+#check open List Nat in fun n => cons n
 
 syntax (name := tryapp) term ">>>>>" term : term
 
@@ -234,6 +259,7 @@ syntax (name := minlet) "minlet!" : term
 def eglit := minletImpl (Syntax.mkStrLit "minlet!") none
 
 #check eglit
+#eval eglit
 
 def blahh := Meta.isExprDefEqAux
 
